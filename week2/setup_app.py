@@ -24,6 +24,15 @@ ENV_FILE = Path(__file__).with_name(".env")
 
 
 def manifest(settings: Settings, name: str) -> dict:
+    """Describe the GitHub App to create, including its full permission set.
+
+    Args:
+        settings: Supplies the callback port and redirect URI.
+        name: App name; must be unique on GitHub.
+
+    Returns:
+        The manifest GitHub's app-creation form expects.
+    """
     return {
         "name": name,
         "url": "https://github.com/mihail911/modern-software-dev-assignments",
@@ -38,6 +47,7 @@ def manifest(settings: Settings, name: str) -> dict:
 
 
 def main() -> None:
+    """Create the app through the browser and save its client credentials to ``.env``."""
     if ENV_FILE.exists() and "GITHUB_CLIENT_SECRET=" in ENV_FILE.read_text():
         sys.exit(f"{ENV_FILE} already has credentials; delete it to create a new app.")
     settings = Settings.from_env()
@@ -52,7 +62,10 @@ def main() -> None:
     result: dict[str, str] = {}
 
     class Handler(http.server.BaseHTTPRequestHandler):
+        """Serves the auto-submitting manifest form and catches GitHub's redirect."""
+
         def do_GET(self):
+            """Serve the form at ``/`` or record the code GitHub sends to ``/created``."""
             url = urllib.parse.urlparse(self.path)
             params = dict(urllib.parse.parse_qsl(url.query))
             if url.path == "/":
@@ -70,6 +83,11 @@ def main() -> None:
             self.wfile.write(body.encode())
 
         def log_message(self, *args):
+            """Silence the default per-request logging.
+
+            Args:
+                *args: Format string and values, ignored.
+            """
             pass
 
     server = http.server.HTTPServer(("127.0.0.1", settings.callback_port), Handler)

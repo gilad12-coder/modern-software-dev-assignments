@@ -20,7 +20,16 @@ from oauth import (
 
 @dataclass
 class ToolFailure(Exception):
-    """A failure reported to the agent as data. ``retryable`` is the key field."""
+    """A failure reported to the agent as data. ``retryable`` is the key field.
+
+    Attributes:
+        error: Short machine-readable code such as ``not_found`` or ``auth_required``.
+        message: Human-readable description of what went wrong.
+        retryable: Whether repeating the same call unchanged can succeed.
+        retry_after_seconds: How long to wait before retrying, when known.
+        hint: The next step the agent should take instead of retrying blindly.
+        details: Per-field messages GitHub attached to a 422 response.
+    """
 
     error: str
     message: str
@@ -30,6 +39,11 @@ class ToolFailure(Exception):
     details: list[str] = field(default_factory=list)
 
     def payload(self) -> dict[str, Any]:
+        """Build the JSON body sent to the agent as the tool error.
+
+        Returns:
+            The failure as a dict, leaving out optional fields that are unset.
+        """
         out: dict[str, Any] = {
             "error": self.error,
             "message": self.message,
@@ -45,6 +59,14 @@ class ToolFailure(Exception):
 
 
 def auth_failure(reason: str) -> ToolFailure:
+    """Build the failure that tells the agent a human must log in again.
+
+    Args:
+        reason: Why the token is unusable, shown in the message.
+
+    Returns:
+        A non-retryable ``auth_required`` failure whose hint names the login command.
+    """
     return ToolFailure(
         error="auth_required",
         message=f"GitHub authorization is missing or no longer valid ({reason}).",
@@ -57,7 +79,14 @@ def auth_failure(reason: str) -> ToolFailure:
 
 
 def _rate_limit_wait(resp: httpx.Response) -> int | None:
-    """Seconds to wait if this response is a rate limit, else None."""
+    """Work out how long to wait if this response is a rate limit.
+
+    Args:
+        resp: A 403 or 429 response from GitHub.
+
+    Returns:
+        Seconds to wait, or None when the response is not a rate limit.
+    """
     if "retry-after" in resp.headers:
         value = resp.headers["retry-after"]
         return int(value) if value.isdigit() else 60
@@ -70,6 +99,14 @@ def _rate_limit_wait(resp: httpx.Response) -> int | None:
 
 
 def _github_messages(resp: httpx.Response) -> tuple[str, list[str]]:
+    """Pull GitHub's error message and per-field details out of a response.
+
+    Args:
+        resp: An error response from GitHub.
+
+    Returns:
+        The top-level message and a list of detail strings (empty if none).
+    """
     try:
         body = resp.json()
     except ValueError:
@@ -83,6 +120,14 @@ def _github_messages(resp: httpx.Response) -> tuple[str, list[str]]:
 
 
 def failure_from_response(resp: httpx.Response) -> ToolFailure:
+    """Map a GitHub error response to a failure the agent can act on.
+
+    Args:
+        resp: A response with status 400 or higher.
+
+    Returns:
+        A ToolFailure whose ``error`` and ``retryable`` match the HTTP status.
+    """
     message, details = _github_messages(resp)
     status = resp.status_code
     wait = _rate_limit_wait(resp) if status in (403, 429) else None
@@ -128,7 +173,19 @@ def failure_from_response(resp: httpx.Response) -> ToolFailure:
 
 
 class GitHub:
+    """Authenticated GitHub REST client used by every tool.
+
+    Attributes:
+        settings: API URL and OAuth settings.
+        tokens: Hands out a valid access token, refreshing it when needed.
+    """
+
     def __init__(self, settings: Settings | None = None):
+        """Create a client.
+
+        Args:
+            settings: Settings to use; read from the environment when None.
+        """
         self.settings = settings or Settings.from_env()
         self.tokens = TokenManager(self.settings)
 
@@ -140,6 +197,20 @@ class GitHub:
         params: dict | None = None,
         json: dict | None = None,
     ) -> httpx.Response:
+        """Send an authenticated request, refreshing the token once on a 401.
+
+        Args:
+            method: HTTP method such as ``GET`` or ``POST``.
+            path: API path starting with ``/``.
+            params: Query string parameters.
+            json: JSON request body.
+
+        Returns:
+            The successful (status below 400) response.
+
+        Raises:
+            ToolFailure: For every failure, including auth, network and HTTP errors.
+        """
         try:
             token = await self.tokens.access_token()
             resp = await self._send(method, path, token, params, json)
@@ -170,9 +241,36 @@ class GitHub:
         return resp
 
     async def get(self, path: str, **params: Any) -> Any:
+        """Send a GET request and decode the JSON body.
+
+        Args:
+            path: API path starting with ``/``.
+            **params: Query string parameters.
+
+        Returns:
+            The decoded JSON response.
+
+        Raises:
+            ToolFailure: For every failure, as in ``request``.
+        """
         return (await self.request("GET", path, params=params or None)).json()
 
     async def _send(self, method, path, token, params, json) -> httpx.Response:
+        """Make one HTTP request to GitHub with the given token.
+
+        Args:
+            method: HTTP method.
+            path: API path starting with ``/``.
+            token: OAuth access token for the Authorization header.
+            params: Query string parameters, or None.
+            json: JSON request body, or None.
+
+        Returns:
+            The raw response, whatever its status.
+
+        Raises:
+            ToolFailure: When GitHub times out or cannot be reached.
+        """
         try:
             async with httpx.AsyncClient(base_url=self.settings.api_url, timeout=20) as http:
                 return await http.request(

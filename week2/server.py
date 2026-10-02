@@ -62,6 +62,15 @@ COMMENT_LIMIT = 1500
 
 
 def _clip(text: str | None, limit: int) -> tuple[str, bool]:
+    """Cut text to a length limit, marking the cut with an ellipsis.
+
+    Args:
+        text: Text to clip; None counts as empty.
+        limit: Maximum characters to keep.
+
+    Returns:
+        The possibly clipped text and whether it was clipped.
+    """
     text = text or ""
     if len(text) <= limit:
         return text, False
@@ -69,10 +78,29 @@ def _clip(text: str | None, limit: int) -> tuple[str, bool]:
 
 
 def agent_errors(fn):
-    """Report every failure as a JSON tool error (isError=true) instead of a traceback."""
+    """Report every failure as a JSON tool error (isError=true) instead of a traceback.
+
+    Args:
+        fn: The async tool function to wrap.
+
+    Returns:
+        A wrapper with the same signature that turns exceptions into ToolErrors.
+    """
 
     @functools.wraps(fn)
     async def wrapper(*args, **kwargs):
+        """Run the tool and convert any failure into a JSON ToolError.
+
+        Args:
+            *args: Positional tool arguments.
+            **kwargs: Keyword tool arguments.
+
+        Returns:
+            Whatever the tool returns.
+
+        Raises:
+            ToolError: Carries the failure payload as JSON.
+        """
         try:
             return await fn(*args, **kwargs)
         except ToolFailure as failure:
@@ -92,6 +120,16 @@ def agent_errors(fn):
 
 
 def _with_hint(failure: ToolFailure, codes: set[str], hint: str) -> ToolFailure:
+    """Replace a failure's hint when its error code is one of ``codes``.
+
+    Args:
+        failure: The failure to adjust.
+        codes: Error codes the new hint applies to.
+        hint: Tool-specific next step for the agent.
+
+    Returns:
+        The same failure object, possibly with a new hint.
+    """
     if failure.error in codes:
         failure.hint = hint
     return failure
@@ -169,6 +207,15 @@ class CreateIssueResult(BaseModel):
 
 
 def _summary(repo: str, raw: dict) -> IssueSummary:
+    """Shape a raw GitHub issue into the fields an agent needs.
+
+    Args:
+        repo: The issue's repository as "owner/name".
+        raw: The issue as GitHub's REST API returns it.
+
+    Returns:
+        The issue summary.
+    """
     return IssueSummary(
         repo=repo,
         number=raw["number"],
@@ -185,6 +232,14 @@ def _summary(repo: str, raw: dict) -> IssueSummary:
 
 
 def _comment(raw: dict) -> Comment:
+    """Shape a raw GitHub comment, clipping its body.
+
+    Args:
+        raw: The comment as GitHub's REST API returns it.
+
+    Returns:
+        The shaped comment.
+    """
     body, truncated = _clip(raw.get("body"), COMMENT_LIMIT)
     return Comment(
         author=(raw.get("user") or {}).get("login"),
@@ -195,6 +250,14 @@ def _comment(raw: dict) -> Comment:
 
 
 def _repo_from_url(repository_url: str) -> str:
+    """Get "owner/name" from an API repository URL.
+
+    Args:
+        repository_url: URL such as ``https://api.github.com/repos/owner/name``.
+
+    Returns:
+        The repository as "owner/name".
+    """
     return "/".join(repository_url.rstrip("/").split("/")[-2:])
 
 
@@ -212,6 +275,13 @@ async def list_repos(
     Start here: the `full_name` of each result is the `repo` argument every other tool
     expects. Only repositories the user installed the GitHub App on are visible, so a
     repository missing from this list will fail in the other tools too.
+
+    Args:
+        sort: Order of results: most recently pushed, most recently updated, or by name.
+        limit: Maximum number of repositories to return.
+
+    Returns:
+        The repositories, how many are accessible in total, and a note when there are none.
     """
     gh = GitHub()
     installations = (await gh.get("/user/installations", per_page=100))["installations"]
@@ -271,6 +341,18 @@ async def search_issues(
 
     `repo` comes from list_repos. Results are summaries without bodies: pass a result's
     `repo` and `number` to get_issue to read the full text and comments.
+
+    Args:
+        repo: Repository as "owner/name", copied from a list_repos `full_name`.
+        query: Free text matched against titles and bodies. Empty matches everything.
+        state: Which issues to include by state.
+        kind: Search issues or pull requests.
+        labels: Every label must match (AND).
+        sort: Order of results; best_match uses GitHub's relevance ranking.
+        limit: Maximum number of results to return.
+
+    Returns:
+        The total match count, up to `limit` issue summaries, and a note when empty.
     """
     parts = [f"repo:{repo}", "is:issue" if kind == "issue" else "is:pr"]
     if state != "all":
@@ -315,6 +397,14 @@ async def get_issue(
 
     Get `number` from search_issues; do not guess it. Works for pull requests too
     (`is_pull_request` is then true), since GitHub numbers both in one sequence.
+
+    Args:
+        repo: Repository as "owner/name", copied from a list_repos `full_name`.
+        number: Issue number (the `number` field from search_issues), not its URL.
+        max_comments: How many of the newest comments to include.
+
+    Returns:
+        The issue's summary fields plus body, assignees, milestone and recent comments.
     """
     gh = GitHub()
     try:
@@ -380,6 +470,16 @@ async def create_issue(
     label exists, and lists open issues with a similar title so you can avoid duplicates.
     Issues cannot be deleted through the API and filing one notifies watchers, so show the
     preview to the user and only call again with dry_run=false once they confirm.
+
+    Args:
+        repo: Repository as "owner/name", copied from a list_repos `full_name`.
+        title: Issue title.
+        body: Markdown.
+        labels: Must already exist in the repo; unknown labels fail.
+        dry_run: true (default) only previews. false creates the issue for real.
+
+    Returns:
+        The preview and warnings; after a real write, also the created issue.
     """
     gh = GitHub()
     preview = IssuePreview(repo=repo, title=title, body=body, labels=labels)

@@ -21,6 +21,11 @@ from oauth import AuthRequired, AuthUnavailable, Settings, TokenStore, exchange
 
 
 def pkce_pair() -> tuple[str, str]:
+    """Generate a PKCE verifier and its S256 challenge.
+
+    Returns:
+        The secret verifier and the challenge to put in the authorize URL.
+    """
     verifier = secrets.token_urlsafe(64)[:96]
     digest = hashlib.sha256(verifier.encode()).digest()
     challenge = base64.urlsafe_b64encode(digest).rstrip(b"=").decode()
@@ -28,6 +33,16 @@ def pkce_pair() -> tuple[str, str]:
 
 
 def authorize_url(settings: Settings, state: str, challenge: str) -> str:
+    """Build the GitHub page URL where the user approves the app.
+
+    Args:
+        settings: Supplies the client ID, redirect URI and OAuth URL.
+        state: Random value checked on the callback to block CSRF.
+        challenge: PKCE S256 challenge.
+
+    Returns:
+        The full authorize URL.
+    """
     query = urllib.parse.urlencode(
         {
             "client_id": settings.client_id,
@@ -41,11 +56,26 @@ def authorize_url(settings: Settings, state: str, challenge: str) -> str:
 
 
 def wait_for_code(port: int, expected_state: str, timeout: float = 300) -> str:
-    """Serve one request on 127.0.0.1:<port>/callback and return the ``code`` it carries."""
+    """Serve one request on 127.0.0.1:<port>/callback and return the ``code`` it carries.
+
+    Args:
+        port: Loopback port to listen on.
+        expected_state: The ``state`` sent in the authorize URL.
+        timeout: Seconds to wait for the browser before giving up.
+
+    Returns:
+        The authorization code from GitHub.
+
+    Raises:
+        SystemExit: The state did not match, GitHub sent an error, or time ran out.
+    """
     result: dict[str, str] = {}
 
     class Handler(http.server.BaseHTTPRequestHandler):
+        """Receives GitHub's redirect and records the code or the error."""
+
         def do_GET(self):
+            """Check the callback's state, store the result and stop the server."""
             url = urllib.parse.urlparse(self.path)
             params = dict(urllib.parse.parse_qsl(url.query))
             if url.path != "/callback":
@@ -66,6 +96,11 @@ def wait_for_code(port: int, expected_state: str, timeout: float = 300) -> str:
             threading.Thread(target=self.server.shutdown, daemon=True).start()
 
         def log_message(self, *args):
+            """Silence the default per-request logging.
+
+            Args:
+                *args: Format string and values, ignored.
+            """
             pass
 
     server = http.server.HTTPServer(("127.0.0.1", port), Handler)
@@ -82,6 +117,15 @@ def wait_for_code(port: int, expected_state: str, timeout: float = 300) -> str:
 
 
 async def whoami(settings: Settings, access_token: str) -> str:
+    """Look up which GitHub account a token belongs to.
+
+    Args:
+        settings: Supplies the API URL.
+        access_token: Token to check.
+
+    Returns:
+        The account's login, or ``HTTP <status>`` if the lookup failed.
+    """
     async with httpx.AsyncClient(timeout=15) as http:
         resp = await http.get(
             f"{settings.api_url}/user",
@@ -91,6 +135,7 @@ async def whoami(settings: Settings, access_token: str) -> str:
 
 
 def main() -> None:
+    """Run the browser login and cache the resulting token."""
     settings = Settings.from_env()
     if not (settings.client_id and settings.client_secret):
         sys.exit("Set GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET (env or week2/.env) first.")

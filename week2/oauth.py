@@ -27,6 +27,17 @@ LOGIN_COMMAND = "uv run --directory week2 python login.py"
 
 @dataclass(frozen=True)
 class Settings:
+    """Configuration read from the environment (and ``week2/.env``).
+
+    Attributes:
+        client_id: GitHub App client ID, or None if unset.
+        client_secret: GitHub App client secret, or None if unset.
+        token_file: Where the token cache lives, outside the repo.
+        api_url: Base URL of the GitHub REST API.
+        oauth_url: Base URL of GitHub's OAuth endpoints.
+        callback_port: Local port the login flow listens on.
+    """
+
     client_id: str | None
     client_secret: str | None
     token_file: Path
@@ -36,6 +47,11 @@ class Settings:
 
     @classmethod
     def from_env(cls) -> Settings:
+        """Read settings from environment variables, with defaults.
+
+        Returns:
+            The settings for this process.
+        """
         default_token = Path.home() / ".config" / "github-issues-mcp" / "token.json"
         return cls(
             client_id=os.environ.get("GITHUB_CLIENT_ID") or None,
@@ -48,6 +64,11 @@ class Settings:
 
     @property
     def redirect_uri(self) -> str:
+        """The OAuth callback URL registered on the GitHub App.
+
+        Returns:
+            ``http://127.0.0.1:<callback_port>/callback``.
+        """
         return f"http://127.0.0.1:{self.callback_port}/callback"
 
 
@@ -65,6 +86,15 @@ class AuthUnavailable(Exception):
 
 @dataclass(frozen=True)
 class Token:
+    """A cached user token pair with absolute expiry times.
+
+    Attributes:
+        access_token: Token sent to the API; lasts 8 hours.
+        expires_at: Unix time when the access token expires.
+        refresh_token: Single-use token that buys a new pair.
+        refresh_expires_at: Unix time when the refresh token expires.
+    """
+
     access_token: str
     expires_at: float
     refresh_token: str
@@ -72,6 +102,15 @@ class Token:
 
     @classmethod
     def from_response(cls, data: dict, now: float | None = None) -> Token:
+        """Build a token from GitHub's token endpoint response.
+
+        Args:
+            data: Decoded JSON from ``/login/oauth/access_token``.
+            now: Current Unix time; defaults to ``time.time()``.
+
+        Returns:
+            The token with relative lifetimes turned into absolute times.
+        """
         now = time.time() if now is None else now
         return cls(
             access_token=data["access_token"],
@@ -85,9 +124,19 @@ class TokenStore:
     """JSON token cache outside the repo, written atomically with mode 0600."""
 
     def __init__(self, path: Path):
+        """Create a store backed by one file.
+
+        Args:
+            path: Location of the JSON token file.
+        """
         self.path = path
 
     def load(self) -> Token | None:
+        """Read the cached token.
+
+        Returns:
+            The token, or None if the file is missing or unreadable.
+        """
         try:
             return Token(**json.loads(self.path.read_text()))
         except FileNotFoundError:
@@ -96,6 +145,11 @@ class TokenStore:
             return None
 
     def save(self, token: Token) -> None:
+        """Write the token atomically, readable only by the current user.
+
+        Args:
+            token: The token to cache.
+        """
         self.path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
         tmp = self.path.with_suffix(".tmp")
         fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
@@ -105,7 +159,19 @@ class TokenStore:
 
 
 async def exchange(settings: Settings, payload: dict) -> Token:
-    """POST to GitHub's token endpoint. Used for both the code exchange and refresh."""
+    """POST to GitHub's token endpoint. Used for both the code exchange and refresh.
+
+    Args:
+        settings: Supplies the client credentials and OAuth URL.
+        payload: Grant-specific fields, e.g. ``grant_type`` and ``refresh_token``.
+
+    Returns:
+        The new token pair.
+
+    Raises:
+        AuthUnavailable: The endpoint could not be reached or returned a 5xx.
+        AuthRequired: GitHub refused the grant, or sent no refresh token.
+    """
     payload = {"client_id": settings.client_id, "client_secret": settings.client_secret, **payload}
     try:
         async with httpx.AsyncClient(timeout=15) as http:
@@ -134,6 +200,11 @@ _locks: weakref.WeakKeyDictionary = weakref.WeakKeyDictionary()
 
 
 def _loop_lock() -> asyncio.Lock:
+    """Get the refresh lock for the running event loop, creating it on first use.
+
+    Returns:
+        One asyncio lock per event loop.
+    """
     loop = asyncio.get_running_loop()
     if loop not in _locks:
         _locks[loop] = asyncio.Lock()
@@ -144,14 +215,28 @@ class TokenManager:
     """Hands out a valid access token, refreshing silently. Never opens a browser."""
 
     def __init__(self, settings: Settings):
+        """Create a manager for the token file named in ``settings``.
+
+        Args:
+            settings: Supplies client credentials and the token file path.
+        """
         self.settings = settings
         self.store = TokenStore(settings.token_file)
 
     async def access_token(self, rejected: str | None = None) -> str:
         """Return a usable access token.
 
-        ``rejected`` is a token GitHub just answered 401 to. If the cache still holds it
-        we refresh even though it hasn't reached its expiry time.
+        Args:
+            rejected: A token GitHub just answered 401 to. If the cache still holds it
+                we refresh even though it hasn't reached its expiry time.
+
+        Returns:
+            An access token that should be accepted by GitHub.
+
+        Raises:
+            NotConfigured: The client ID or secret is not set.
+            AuthRequired: There is no token, or it cannot be refreshed.
+            AuthUnavailable: The token endpoint could not be reached.
         """
         if not (self.settings.client_id and self.settings.client_secret):
             raise NotConfigured("GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET are not set")
@@ -169,6 +254,17 @@ class TokenManager:
                     fcntl.flock(lock_file, fcntl.LOCK_UN)
 
     async def _fresh_token(self, rejected: str | None) -> str:
+        """Return the cached token, refreshing it first if expired or rejected.
+
+        Args:
+            rejected: A token GitHub just refused, or None.
+
+        Returns:
+            A usable access token.
+
+        Raises:
+            AuthRequired: There is no cached token or the refresh token expired.
+        """
         token = self.store.load()
         if token is None:
             raise AuthRequired("no cached token")
