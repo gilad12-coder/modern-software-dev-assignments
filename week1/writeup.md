@@ -24,7 +24,19 @@ I exported the request bodies from the flows to `bodies/NNN_POST_v1_messages.jso
 > - `ledger/money.py` lacks the `format_amount` that `accounts.py` and `report.py` import, so every test module fails at collection.
 > - `monthly_summary` computes `net = income - expenses`, although expenses are stored as negatives.
 >
-> After the first turn, before "commit this", I installed a `commit-msg` hook that rejects subjects that aren't Conventional Commits, so that the commit would fail.
+> After the first turn, before "commit this", I installed a `commit-msg` hook that rejects subjects that aren't Conventional Commits, so that the commit would fail. `.git/hooks/commit-msg` (`chmod +x`):
+> ```sh
+> #!/bin/sh
+> # Enforce Conventional Commits on the subject line.
+> subject=$(head -n1 "$1")
+> if ! printf '%s' "$subject" | grep -Eq '^(feat|fix|docs|test|refactor|chore)(\([a-z0-9-]+\))?: .{1,72}$'; then
+>   echo "commit-msg: subject must follow Conventional Commits, e.g. 'fix(report): correct net calculation'" >&2
+>   echo "commit-msg: got: $subject" >&2
+>   exit 1
+> fi
+> ```
+>
+> To reproduce: in any small repo with tests, delete a function that other modules import and plant one logic bug; add the `CLAUDE.md`, the two settings files above and this hook (install it after turn 1, as I did); then type the prompts below, word for word.
 >
 > **Turns.** The session started in plan mode. Before the first prompt I opened `/memory` and cancelled it, which shows up as 003 [0.3]–[0.4].
 > 1. **Prompt 1:** "The test suite is red. Get it green, then add a `statement` subcommand: `python -m ledger statement data/sample.csv --name Checking` should print the account statement (`Account.statement()`) for every transaction in the CSV, with the same `--currency` option as `report`. Add tests for the new command and document it in the README." Plan → approval in the plan dialog → implementation. 29 tests pass; nothing committed.
@@ -252,6 +264,8 @@ Your final report is delivered through SubagentHandback: when your work is compl
 | Built-in | MCP | Deferred | **Total** | Changed mid-session? |
 |---|---|---|---|---|
 | 37: 15 schemas in `tools` (14 sent in full, plus `DeferredToolPlaceholder`) + 22 deferred names | 179 from 8 servers: 3 Claude Docs schemas in `tools` + 176 deferred names (Microsoft 365 50, Todoist 47, Gmail 30, claude-in-chrome 22, Google Drive 11, Google Calendar 9, Claude Docs 5, Linear 2) | 198 names only (22 + 176), plus 4 schemas sent with `defer_loading: true` | **216** | Yes: 18 → 19 schemas at 007, when the model loaded ExitPlanMode. The subagent gets 13; side calls get 0, 13 or 19. |
+
+[OBSERVED] Built-in + MCP is the partition (37 + 179 = 216). "Deferred" cuts across both: of the 216, 18 schemas are in `tools` at 003 and 198 are names only, loadable on demand with ToolSearch.
 
 [OBSERVED] Three kinds of change:
 1. **The model loaded a deferred tool.**
