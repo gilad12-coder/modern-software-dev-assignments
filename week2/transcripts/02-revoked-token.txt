@@ -1,0 +1,17 @@
+USER: What are the open bugs in my issues-mcp-sandbox repo?
+
+TOOL CALL  list_repos({"limit": 100})
+TOOL RESULT (isError=True)  {"error": "auth_required", "message": "GitHub authorization is missing or no longer valid (bad_refresh_token: The refresh token passed is incorrect or expired.).", "retryable": false, "hint": "Do not retry. Ask the user to run `uv run --directory week2 python login.py` in a terminal, then call the tool again."}
+
+ASSISTANT: I can't list your issues yet because the GitHub authorization for the `github-issues` MCP server has expired (`bad_refresh_token`). This needs you to act. In a terminal, run:
+
+```
+uv run --directory week2 python login.py
+```
+
+Tell me when it's done and I'll look up the open bugs in `issues-mcp-sandbox`.
+
+Two other things:
+- The session-start `gh-axi` output was for a different repo, `gilad12-coder/modern-software-dev-assignments`. It showed 0 open issues, so it doesn't answer your question.
+- The `~/.optmem/memo wake` startup command needed approval and didn't run, so memory isn't active this session.
+
