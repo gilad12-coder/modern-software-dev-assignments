@@ -1,0 +1,22 @@
+[project]
+name = "github-issues-mcp"
+version = "0.1.0"
+description = "MCP server exposing GitHub issues to a coding agent, authenticated with GitHub App OAuth"
+requires-python = ">=3.11"
+dependencies = [
+    "fastmcp>=4.0,<5",
+    "httpx>=0.28,<1",
+    "python-dotenv>=1.0",
+]
+
+[dependency-groups]
+dev = ["pytest>=8", "pytest-asyncio>=0.24"]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+pythonpath = ["."]
+testpaths = ["tests"]
