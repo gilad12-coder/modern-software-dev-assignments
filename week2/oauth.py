@@ -1,4 +1,4 @@
-"""GitHub App OAuth: settings, token cache, silent refresh, and the one-time login flow.
+"""GitHub App OAuth: token cache, silent refresh, and the one-time login flow.
 
 The MCP server only ever *refreshes* tokens. Getting the first token needs a browser,
 so that lives in ``login.py`` and is never triggered from inside a tool call.
@@ -14,64 +14,14 @@ import os
 import tempfile
 import time
 import weakref
-from dataclasses import asdict, dataclass
+from dataclasses import asdict
+from http import HTTPStatus
 from pathlib import Path
 
+import config
+import constants as C
 import httpx
-from dotenv import load_dotenv
-
-load_dotenv(Path(__file__).with_name(".env"))
-
-# Refresh a little early so a token never expires between our check and GitHub's.
-EXPIRY_SKEW_SECONDS = 120
-LOGIN_COMMAND = "uv run --directory week2 python login.py"
-
-
-@dataclass(frozen=True)
-class Settings:
-    """Configuration read from the environment (and ``week2/.env``).
-
-    Attributes:
-        client_id: GitHub App client ID, or None if unset.
-        client_secret: GitHub App client secret, or None if unset.
-        token_file: Where the token cache lives, outside the repo.
-        api_url: Base URL of the GitHub REST API.
-        oauth_url: Base URL of GitHub's OAuth endpoints.
-        callback_port: Local port the login flow listens on.
-    """
-
-    client_id: str | None
-    client_secret: str | None
-    token_file: Path
-    api_url: str
-    oauth_url: str
-    callback_port: int
-
-    @classmethod
-    def from_env(cls) -> Settings:
-        """Read settings from environment variables, with defaults.
-
-        Returns:
-            The settings for this process.
-        """
-        default_token = Path.home() / ".config" / "github-issues-mcp" / "token.json"
-        return cls(
-            client_id=os.environ.get("GITHUB_CLIENT_ID") or None,
-            client_secret=os.environ.get("GITHUB_CLIENT_SECRET") or None,
-            token_file=Path(os.environ.get("GH_MCP_TOKEN_FILE") or default_token).expanduser(),
-            api_url=os.environ.get("GITHUB_API_URL", "https://api.github.com").rstrip("/"),
-            oauth_url=os.environ.get("GITHUB_OAUTH_URL", "https://github.com").rstrip("/"),
-            callback_port=int(os.environ.get("GH_MCP_CALLBACK_PORT", "8765")),
-        )
-
-    @property
-    def redirect_uri(self) -> str:
-        """The OAuth callback URL registered on the GitHub App.
-
-        Returns:
-            ``http://127.0.0.1:<callback_port>/callback``.
-        """
-        return f"http://127.0.0.1:{self.callback_port}/callback"
+from models import Settings, Token
 
 
 class AuthRequired(Exception):
@@ -85,7 +35,7 @@ class NotConfigured(Exception):
 class AuthUnavailable(Exception):
     """The token endpoint could not be reached. The token itself may still be fine."""
 
-    def __init__(self, message: str, retry_after_seconds: int = 5):
+    def __init__(self, message: str, retry_after_seconds: int = config.TRANSIENT_RETRY_SECONDS):
         """Record a temporary failure and when it is safe to retry.
 
         Args:
@@ -94,42 +44,6 @@ class AuthUnavailable(Exception):
         """
         super().__init__(message)
         self.retry_after_seconds = retry_after_seconds
-
-
-@dataclass(frozen=True)
-class Token:
-    """A cached user token pair with absolute expiry times.
-
-    Attributes:
-        access_token: Token sent to the API; lasts 8 hours.
-        expires_at: Unix time when the access token expires.
-        refresh_token: Single-use token that buys a new pair.
-        refresh_expires_at: Unix time when the refresh token expires.
-    """
-
-    access_token: str
-    expires_at: float
-    refresh_token: str
-    refresh_expires_at: float
-
-    @classmethod
-    def from_response(cls, data: dict, now: float | None = None) -> Token:
-        """Build a token from GitHub's token endpoint response.
-
-        Args:
-            data: Decoded JSON from ``/login/oauth/access_token``.
-            now: Current Unix time; defaults to ``time.time()``.
-
-        Returns:
-            The token with relative lifetimes turned into absolute times.
-        """
-        now = time.time() if now is None else now
-        return cls(
-            access_token=data["access_token"],
-            expires_at=now + int(data["expires_in"]),
-            refresh_token=data["refresh_token"],
-            refresh_expires_at=now + int(data["refresh_token_expires_in"]),
-        )
 
 
 class TokenStore:
@@ -151,11 +65,15 @@ class TokenStore:
         """
         try:
             token = Token(**json.loads(self.path.read_text()))
-            if any(not isinstance(value, str) or not value.strip()
-                   for value in (token.access_token, token.refresh_token)):
+            if any(
+                not isinstance(value, str) or not value.strip()
+                for value in (token.access_token, token.refresh_token)
+            ):
                 return None
-            if any(type(value) not in (int, float) or not math.isfinite(value)
-                   for value in (token.expires_at, token.refresh_expires_at)):
+            if any(
+                type(value) not in (int, float) or not math.isfinite(value)
+                for value in (token.expires_at, token.refresh_expires_at)
+            ):
                 return None
             return token
         except (OSError, ValueError, TypeError, OverflowError):
@@ -167,7 +85,7 @@ class TokenStore:
         Args:
             token: The token to cache.
         """
-        self.path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+        self.path.parent.mkdir(parents=True, exist_ok=True, mode=C.PRIVATE_DIRECTORY_MODE)
         fd, name = tempfile.mkstemp(prefix=f".{self.path.name}.", dir=self.path.parent)
         tmp = Path(name)
         try:
@@ -193,51 +111,51 @@ async def exchange(settings: Settings, payload: dict) -> Token:
         AuthRequired: GitHub refused the grant, or sent no refresh token.
         NotConfigured: GitHub rejected the app's client credentials.
     """
-    payload = {"client_id": settings.client_id, "client_secret": settings.client_secret, **payload}
+    payload = {
+        C.KEY_CLIENT_ID: settings.client_id,
+        C.KEY_CLIENT_SECRET: settings.client_secret,
+        **payload,
+    }
     try:
-        async with httpx.AsyncClient(timeout=15) as http:
+        async with httpx.AsyncClient(timeout=config.TOKEN_TIMEOUT_SECONDS) as http:
             resp = await http.post(
-                f"{settings.oauth_url}/login/oauth/access_token",
+                f"{settings.oauth_url}{C.OAUTH_TOKEN_PATH}",
                 data=payload,
-                headers={"Accept": "application/json"},
+                headers={C.HEADER_ACCEPT: C.JSON_MEDIA_TYPE},
             )
     except httpx.HTTPError as exc:
         raise AuthUnavailable(f"could not reach GitHub's token endpoint: {exc}") from exc
-    if resp.status_code == 429:
-        delay = resp.headers.get("retry-after", "60")
+    if resp.status_code == HTTPStatus.TOO_MANY_REQUESTS:
+        delay = resp.headers.get(C.HEADER_RETRY_AFTER, str(config.RATE_LIMIT_RETRY_SECONDS))
         raise AuthUnavailable(
-            "GitHub's token endpoint is rate limited; the cached token was kept.",
-            retry_after_seconds=max(1, int(delay)) if delay.isdigit() else 60,
+            C.OAUTH_RATE_LIMIT_MESSAGE,
+            retry_after_seconds=max(config.MIN_RETRY_SECONDS, int(delay))
+            if delay.isdigit()
+            else config.RATE_LIMIT_RETRY_SECONDS,
         )
-    if resp.status_code >= 500:
+    if resp.status_code >= HTTPStatus.INTERNAL_SERVER_ERROR:
         raise AuthUnavailable(f"GitHub's token endpoint returned HTTP {resp.status_code}")
     try:
         data = resp.json()
     except ValueError as exc:
-        raise AuthUnavailable("GitHub's token endpoint returned invalid JSON.") from exc
+        raise AuthUnavailable(C.OAUTH_INVALID_JSON_MESSAGE) from exc
     if not isinstance(data, dict):
-        raise AuthUnavailable("GitHub's token endpoint returned an unexpected response.")
+        raise AuthUnavailable(C.OAUTH_UNEXPECTED_RESPONSE_MESSAGE)
     # GitHub reports OAuth failures as HTTP 200 with an "error" field.
-    if data.get("error") in {"temporarily_unavailable", "server_error"}:
-        raise AuthUnavailable("GitHub's token endpoint is temporarily unavailable.")
-    if data.get("error") in {"incorrect_client_credentials", "invalid_client"}:
-        raise NotConfigured(
-            "GitHub rejected GITHUB_CLIENT_ID or GITHUB_CLIENT_SECRET; "
-            "correct them in week2/.env or the env block of .mcp.json."
-        )
-    if "error" in data:
-        raise AuthRequired(f"{data['error']}: {data.get('error_description', '')}")
-    if "access_token" not in data:
-        raise AuthUnavailable("GitHub's token endpoint returned no access token.")
-    if "refresh_token" not in data:
-        raise AuthRequired(
-            "GitHub returned a token without a refresh token. Enable 'Expire user "
-            "authorization tokens' in the GitHub App settings."
-        )
+    if data.get(C.KEY_ERROR) in {C.OAUTH_TEMPORARILY_UNAVAILABLE, C.OAUTH_SERVER_ERROR}:
+        raise AuthUnavailable(C.OAUTH_UNAVAILABLE_MESSAGE)
+    if data.get(C.KEY_ERROR) in {C.OAUTH_BAD_CREDENTIALS, C.OAUTH_INVALID_CLIENT}:
+        raise NotConfigured(C.OAUTH_REJECTED_CREDENTIALS_MESSAGE)
+    if C.KEY_ERROR in data:
+        raise AuthRequired(f"{data[C.KEY_ERROR]}: {data.get(C.KEY_ERROR_DESCRIPTION, '')}")
+    if C.KEY_ACCESS_TOKEN not in data:
+        raise AuthUnavailable(C.OAUTH_NO_ACCESS_MESSAGE)
+    if C.KEY_REFRESH_TOKEN not in data:
+        raise AuthRequired(C.OAUTH_NO_REFRESH_MESSAGE)
     try:
         return Token.from_response(data)
     except (KeyError, TypeError, ValueError) as exc:
-        raise AuthUnavailable("GitHub's token endpoint returned incomplete token data.") from exc
+        raise AuthUnavailable(C.OAUTH_INCOMPLETE_TOKEN_MESSAGE) from exc
 
 
 _locks: weakref.WeakKeyDictionary = weakref.WeakKeyDictionary()
@@ -283,13 +201,13 @@ class TokenManager:
             AuthUnavailable: The token endpoint could not be reached.
         """
         if not (self.settings.client_id and self.settings.client_secret):
-            raise NotConfigured("GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET are not set")
+            raise NotConfigured(C.MISSING_CREDENTIALS_MESSAGE)
         # GitHub refresh tokens are single-use, so two refreshes racing each other would
         # leave one caller holding a dead token. Serialize within this process (asyncio
         # lock) and across processes sharing the cache file (flock on a sidecar file).
         async with _loop_lock():
-            lock_path = self.settings.token_file.with_suffix(".lock")
-            lock_path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+            lock_path = self.settings.token_file.with_suffix(C.TOKEN_LOCK_SUFFIX)
+            lock_path.parent.mkdir(parents=True, exist_ok=True, mode=C.PRIVATE_DIRECTORY_MODE)
             with open(lock_path, "w") as lock_file:
                 await asyncio.to_thread(fcntl.flock, lock_file, fcntl.LOCK_EX)
                 try:
@@ -311,15 +229,16 @@ class TokenManager:
         """
         token = self.store.load()
         if token is None:
-            raise AuthRequired("no cached token")
+            raise AuthRequired(C.NO_TOKEN_MESSAGE)
         now = time.time()
-        still_valid = token.expires_at - EXPIRY_SKEW_SECONDS > now
+        still_valid = token.expires_at - config.EXPIRY_SKEW_SECONDS > now
         if still_valid and token.access_token != rejected:
             return token.access_token
         if token.refresh_expires_at <= now:
-            raise AuthRequired("the refresh token expired (they last 6 months)")
+            raise AuthRequired(C.REFRESH_EXPIRED_MESSAGE)
         new = await exchange(
-            self.settings, {"grant_type": "refresh_token", "refresh_token": token.refresh_token}
+            self.settings,
+            {C.KEY_GRANT_TYPE: C.KEY_REFRESH_TOKEN, C.KEY_REFRESH_TOKEN: token.refresh_token},
         )
         self.store.save(new)
         return new.access_token

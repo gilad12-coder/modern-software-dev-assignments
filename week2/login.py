@@ -14,10 +14,13 @@ import sys
 import threading
 import urllib.parse
 import webbrowser
+from http import HTTPStatus
 
+import config
+import constants as C
 import httpx
-
-from oauth import AuthRequired, AuthUnavailable, NotConfigured, Settings, TokenStore, exchange
+from models import Settings
+from oauth import AuthRequired, AuthUnavailable, NotConfigured, TokenStore, exchange
 
 
 def pkce_pair() -> tuple[str, str]:
@@ -26,7 +29,7 @@ def pkce_pair() -> tuple[str, str]:
     Returns:
         The secret verifier and the challenge to put in the authorize URL.
     """
-    verifier = secrets.token_urlsafe(64)[:96]
+    verifier = secrets.token_urlsafe(C.PKCE_ENTROPY_BYTES)[: C.PKCE_VERIFIER_LENGTH]
     digest = hashlib.sha256(verifier.encode()).digest()
     challenge = base64.urlsafe_b64encode(digest).rstrip(b"=").decode()
     return verifier, challenge
@@ -45,18 +48,22 @@ def authorize_url(settings: Settings, state: str, challenge: str) -> str:
     """
     query = urllib.parse.urlencode(
         {
-            "client_id": settings.client_id,
-            "redirect_uri": settings.redirect_uri,
-            "state": state,
-            "code_challenge": challenge,
-            "code_challenge_method": "S256",
+            C.KEY_CLIENT_ID: settings.client_id,
+            C.KEY_REDIRECT_URI: settings.redirect_uri,
+            C.KEY_STATE: state,
+            C.KEY_CODE_CHALLENGE: challenge,
+            C.KEY_CODE_CHALLENGE_METHOD: C.PKCE_METHOD,
         }
     )
-    return f"{settings.oauth_url}/login/oauth/authorize?{query}"
+    return f"{settings.oauth_url}{C.OAUTH_AUTHORIZE_PATH}?{query}"
 
 
 def wait_for_code(
-    port: int, expected_state: str, timeout: float = 300, *, browser_url: str | None = None
+    port: int,
+    expected_state: str,
+    timeout: float = config.LOGIN_TIMEOUT_SECONDS,
+    *,
+    browser_url: str | None = None,
 ) -> str:
     """Serve one request on 127.0.0.1:<port>/callback and return the ``code`` it carries.
 
@@ -81,22 +88,24 @@ def wait_for_code(
             """Check the callback's state, store the result and stop the server."""
             url = urllib.parse.urlparse(self.path)
             params = dict(urllib.parse.parse_qsl(url.query))
-            if url.path != "/callback":
-                self.send_error(404)
+            if url.path != C.OAUTH_CALLBACK_PATH:
+                self.send_error(HTTPStatus.NOT_FOUND)
                 return
-            if params.get("state") != expected_state:
-                result["error"] = "state mismatch (possible CSRF); start the login again"
-            elif "error" in params:
-                result["error"] = f"{params['error']}: {params.get('error_description', '')}"
-            elif not params.get("code"):
-                result["error"] = "missing authorization code; start the login again"
+            if params.get(C.KEY_STATE) != expected_state:
+                result[C.KEY_ERROR] = C.STATE_MISMATCH_MESSAGE
+            elif C.KEY_ERROR in params:
+                result[C.KEY_ERROR] = (
+                    f"{params[C.KEY_ERROR]}: {params.get(C.KEY_ERROR_DESCRIPTION, '')}"
+                )
+            elif not params.get(C.KEY_CODE):
+                result[C.KEY_ERROR] = C.MISSING_CODE_MESSAGE
             else:
-                result["code"] = params["code"]
-            ok = "code" in result
-            self.send_response(200 if ok else 400)
-            self.send_header("Content-Type", "text/plain; charset=utf-8")
+                result[C.KEY_CODE] = params[C.KEY_CODE]
+            ok = C.KEY_CODE in result
+            self.send_response(HTTPStatus.OK if ok else HTTPStatus.BAD_REQUEST)
+            self.send_header(C.HEADER_CONTENT_TYPE, C.TEXT_MEDIA_TYPE)
             self.end_headers()
-            msg = "Authorization received. Return to the terminal to finish login." if ok else f"Login failed: {result['error']}"
+            msg = C.AUTHORIZATION_RECEIVED_MESSAGE if ok else f"Login failed: {result[C.KEY_ERROR]}"
             self.wfile.write(msg.encode())
             threading.Thread(target=self.server.shutdown, daemon=True).start()
 
@@ -108,7 +117,7 @@ def wait_for_code(
             """
             pass
 
-    server = http.server.HTTPServer(("127.0.0.1", port), Handler)
+    server = http.server.HTTPServer((config.LOOPBACK_HOST, port), Handler)
     timer = threading.Timer(timeout, server.shutdown)
     timer.start()
     try:
@@ -118,9 +127,9 @@ def wait_for_code(
     finally:
         timer.cancel()
         server.server_close()
-    if "code" not in result:
-        raise SystemExit(f"Login failed: {result.get('error', 'timed out waiting for the browser')}")
-    return result["code"]
+    if C.KEY_CODE not in result:
+        raise SystemExit(f"Login failed: {result.get(C.KEY_ERROR, C.BROWSER_TIMEOUT_MESSAGE)}")
+    return result[C.KEY_CODE]
 
 
 async def whoami(settings: Settings, access_token: str) -> str:
@@ -133,20 +142,27 @@ async def whoami(settings: Settings, access_token: str) -> str:
     Returns:
         The account's login, or ``HTTP <status>`` if the lookup failed.
     """
-    async with httpx.AsyncClient(timeout=15) as http:
+    async with httpx.AsyncClient(timeout=config.TOKEN_TIMEOUT_SECONDS) as http:
         resp = await http.get(
-            f"{settings.api_url}/user",
-            headers={"Authorization": f"Bearer {access_token}", "Accept": "application/vnd.github+json"},
+            f"{settings.api_url}{C.USER_PATH}",
+            headers={
+                C.HEADER_AUTHORIZATION: f"{C.BEARER_PREFIX}{access_token}",
+                C.HEADER_ACCEPT: C.GITHUB_MEDIA_TYPE,
+            },
         )
-    return resp.json().get("login", "?") if resp.status_code == 200 else f"HTTP {resp.status_code}"
+    return (
+        resp.json().get(C.KEY_LOGIN, "?")
+        if resp.status_code == HTTPStatus.OK
+        else f"HTTP {resp.status_code}"
+    )
 
 
 def main() -> None:
     """Run the browser login and cache the resulting token."""
-    settings = Settings.from_env()
+    settings = config.load_settings()
     if not (settings.client_id and settings.client_secret):
-        sys.exit("Set GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET (env or week2/.env) first.")
-    state = secrets.token_urlsafe(32)
+        sys.exit(C.LOGIN_MISSING_CREDENTIALS)
+    state = secrets.token_urlsafe(C.LOGIN_STATE_BYTES)
     verifier, challenge = pkce_pair()
     url = authorize_url(settings, state, challenge)
     print(f"Opening your browser to authorize. If it doesn't open, visit:\n\n  {url}\n")
@@ -155,7 +171,11 @@ def main() -> None:
         token = asyncio.run(
             exchange(
                 settings,
-                {"code": code, "code_verifier": verifier, "redirect_uri": settings.redirect_uri},
+                {
+                    C.KEY_CODE: code,
+                    C.KEY_CODE_VERIFIER: verifier,
+                    C.KEY_REDIRECT_URI: settings.redirect_uri,
+                },
             )
         )
     except (AuthRequired, AuthUnavailable, NotConfigured) as exc:

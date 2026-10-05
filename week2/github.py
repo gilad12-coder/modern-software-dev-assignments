@@ -3,61 +3,21 @@
 from __future__ import annotations
 
 import time
-from dataclasses import dataclass, field
 from email.utils import parsedate_to_datetime
+from http import HTTPStatus
 from math import ceil
 from typing import Any
 
+import config
+import constants as C
 import httpx
-
+from models import Settings, ToolFailure
 from oauth import (
-    LOGIN_COMMAND,
     AuthRequired,
     AuthUnavailable,
     NotConfigured,
-    Settings,
     TokenManager,
 )
-
-
-@dataclass
-class ToolFailure(Exception):
-    """A failure reported to the agent as data. ``retryable`` is the key field.
-
-    Attributes:
-        error: Short machine-readable code such as ``not_found`` or ``auth_required``.
-        message: Human-readable description of what went wrong.
-        retryable: Whether repeating the same call unchanged can succeed.
-        retry_after_seconds: How long to wait before retrying, when known.
-        hint: The next step the agent should take instead of retrying blindly.
-        details: Per-field messages GitHub attached to a 422 response.
-    """
-
-    error: str
-    message: str
-    retryable: bool
-    retry_after_seconds: int | None = None
-    hint: str | None = None
-    details: list[str] = field(default_factory=list)
-
-    def payload(self) -> dict[str, Any]:
-        """Build the JSON body sent to the agent as the tool error.
-
-        Returns:
-            The failure as a dict, leaving out optional fields that are unset.
-        """
-        out: dict[str, Any] = {
-            "error": self.error,
-            "message": self.message,
-            "retryable": self.retryable,
-        }
-        if self.retry_after_seconds is not None:
-            out["retry_after_seconds"] = self.retry_after_seconds
-        if self.details:
-            out["details"] = self.details
-        if self.hint:
-            out["hint"] = self.hint
-        return out
 
 
 def auth_failure(reason: str) -> ToolFailure:
@@ -70,11 +30,11 @@ def auth_failure(reason: str) -> ToolFailure:
         A non-retryable ``auth_required`` failure whose hint names the login command.
     """
     return ToolFailure(
-        error="auth_required",
+        error=C.ERROR_AUTH_REQUIRED,
         message=f"GitHub authorization is missing or no longer valid ({reason}).",
         retryable=False,
         hint=(
-            f"Do not retry. Ask the user to run `{LOGIN_COMMAND}` in a terminal, "
+            f"Do not retry. Ask the user to run `{C.LOGIN_COMMAND}` in a terminal, "
             "then call the tool again."
         ),
     )
@@ -89,21 +49,26 @@ def _rate_limit_wait(resp: httpx.Response) -> int | None:
     Returns:
         Seconds to wait, or None when the response is not a rate limit.
     """
-    if "retry-after" in resp.headers:
-        value = resp.headers["retry-after"]
+    if C.HEADER_RETRY_AFTER in resp.headers:
+        value = resp.headers[C.HEADER_RETRY_AFTER]
         if value.isdigit():
-            return max(1, int(value))
+            return max(config.MIN_RETRY_SECONDS, int(value))
         try:
-            return max(1, ceil(parsedate_to_datetime(value).timestamp() - time.time()))
+            return max(
+                config.MIN_RETRY_SECONDS,
+                ceil(parsedate_to_datetime(value).timestamp() - time.time()),
+            )
         except (ValueError, TypeError, OverflowError):
-            return 60
-    if resp.headers.get("x-ratelimit-remaining") == "0":
-        reset = int(resp.headers.get("x-ratelimit-reset", time.time() + 60))
-        return max(1, reset - int(time.time()))
-    if resp.status_code == 429:
-        return 60
-    if "secondary rate limit" in _github_messages(resp)[0].lower():
-        return 60
+            return config.RATE_LIMIT_RETRY_SECONDS
+    if resp.headers.get(C.HEADER_RATE_REMAINING) == C.RATE_LIMIT_EXHAUSTED:
+        reset = int(
+            resp.headers.get(C.HEADER_RATE_RESET, time.time() + config.RATE_LIMIT_RETRY_SECONDS)
+        )
+        return max(config.MIN_RETRY_SECONDS, reset - int(time.time()))
+    if resp.status_code == HTTPStatus.TOO_MANY_REQUESTS:
+        return config.RATE_LIMIT_RETRY_SECONDS
+    if C.SECONDARY_RATE_LIMIT_MARKER in _github_messages(resp)[0].lower():
+        return config.RATE_LIMIT_RETRY_SECONDS
     return None
 
 
@@ -119,13 +84,13 @@ def _github_messages(resp: httpx.Response) -> tuple[str, list[str]]:
     try:
         body = resp.json()
     except ValueError:
-        return resp.text[:200], []
+        return resp.text[: config.ERROR_BODY_LIMIT], []
     details = [
-        e.get("message") or f"{e.get('field')}: {e.get('code')}"
-        for e in body.get("errors", [])
+        e.get(C.KEY_MESSAGE) or f"{e.get(C.KEY_FIELD)}: {e.get(C.KEY_CODE)}"
+        for e in body.get(C.KEY_ERRORS, [])
         if isinstance(e, dict)
     ]
-    return body.get("message", ""), details
+    return body.get(C.KEY_MESSAGE, ""), details
 
 
 def failure_from_response(resp: httpx.Response) -> ToolFailure:
@@ -139,58 +104,58 @@ def failure_from_response(resp: httpx.Response) -> ToolFailure:
     """
     message, details = _github_messages(resp)
     status = resp.status_code
-    wait = _rate_limit_wait(resp) if status in (403, 429) else None
+    wait = (
+        _rate_limit_wait(resp)
+        if status in (HTTPStatus.FORBIDDEN, HTTPStatus.TOO_MANY_REQUESTS)
+        else None
+    )
     if wait is not None:
         return ToolFailure(
-            "rate_limited",
+            C.ERROR_RATE_LIMITED,
             f"GitHub rate limit hit: {message}",
             retryable=True,
             retry_after_seconds=wait,
             hint=f"Wait {wait}s, then retry the same call unchanged.",
         )
-    if status == 403:
+    if status == HTTPStatus.FORBIDDEN:
         return ToolFailure(
-            "forbidden",
+            C.ERROR_FORBIDDEN,
             f"GitHub refused access: {message}",
             retryable=False,
-            hint=(
-                "The GitHub App is probably not installed on this repository, or lacks the "
-                "permission. Call list_repos to see which repositories this server can use."
-            ),
+            hint=(C.FORBIDDEN_HINT),
         )
-    if status == 404:
-        return ToolFailure("not_found", f"GitHub returned 404: {message}", retryable=False)
-    if status == 410:
-        return ToolFailure("gone", f"GitHub returned 410: {message}", retryable=False)
-    if status == 422:
+    if status == HTTPStatus.NOT_FOUND:
+        return ToolFailure(C.ERROR_NOT_FOUND, f"GitHub returned 404: {message}", retryable=False)
+    if status == HTTPStatus.GONE:
+        return ToolFailure(C.ERROR_GONE, f"GitHub returned 410: {message}", retryable=False)
+    if status == HTTPStatus.UNPROCESSABLE_ENTITY:
         return ToolFailure(
-            "invalid_request",
+            C.ERROR_INVALID_REQUEST,
             f"GitHub rejected the request: {message}",
             retryable=False,
             details=details,
-            hint="Fix the arguments using the details above; retrying unchanged will fail again.",
+            hint=C.INVALID_REQUEST_HINT,
         )
-    if status >= 500:
+    if status >= HTTPStatus.INTERNAL_SERVER_ERROR:
         return ToolFailure(
-            "upstream_error",
+            C.ERROR_UPSTREAM_ERROR,
             f"GitHub returned HTTP {status}.",
             retryable=True,
-            retry_after_seconds=5,
-            hint="Transient GitHub failure. Retry once after a short wait.",
+            retry_after_seconds=config.TRANSIENT_RETRY_SECONDS,
+            hint=C.UPSTREAM_ERROR_HINT,
         )
-    return ToolFailure("http_error", f"GitHub returned HTTP {status}: {message}", retryable=False)
+    return ToolFailure(
+        C.ERROR_HTTP_ERROR, f"GitHub returned HTTP {status}: {message}", retryable=False
+    )
 
 
 def _unknown_write_outcome() -> ToolFailure:
     """Prevent automatic retries when an issue may already have been created."""
     return ToolFailure(
-        "write_outcome_unknown",
-        "GitHub may have created the issue, but its confirmation was lost.",
+        C.ERROR_WRITE_OUTCOME_UNKNOWN,
+        C.UNKNOWN_WRITE_MESSAGE,
         retryable=False,
-        hint=(
-            "Do not repeat create_issue. Use search_issues with the same repo and a short "
-            "phrase from the title to check for an existing issue; ask the user before any retry."
-        ),
+        hint=(C.UNKNOWN_WRITE_HINT),
     )
 
 
@@ -208,7 +173,7 @@ class GitHub:
         Args:
             settings: Settings to use; read from the environment when None.
         """
-        self.settings = settings or Settings.from_env()
+        self.settings = settings or config.load_settings()
         self.tokens = TokenManager(self.settings)
 
     async def request(
@@ -236,45 +201,42 @@ class GitHub:
         try:
             token = await self.tokens.access_token()
             resp = await self._send(method, path, token, params, json)
-            if resp.status_code == 401:
+            if resp.status_code == HTTPStatus.UNAUTHORIZED:
                 # Revoked or expired early. Refresh once and retry; a second 401 is final.
                 token = await self.tokens.access_token(rejected=token)
                 resp = await self._send(method, path, token, params, json)
-                if resp.status_code == 401:
-                    raise auth_failure("GitHub rejected the refreshed token")
+                if resp.status_code == HTTPStatus.UNAUTHORIZED:
+                    raise auth_failure(C.REJECTED_REFRESH_MESSAGE)
         except ToolFailure as failure:
-            if method == "POST" and failure.error == "network_error":
+            if method == C.HTTP_POST and failure.error == C.ERROR_NETWORK_ERROR:
                 raise _unknown_write_outcome() from failure
             raise
         except AuthRequired as exc:
             raise auth_failure(str(exc)) from exc
         except NotConfigured as exc:
             raise ToolFailure(
-                "not_configured",
+                C.ERROR_NOT_CONFIGURED,
                 f"The GitHub App credentials are missing or invalid ({exc}).",
                 retryable=False,
-                hint=(
-                    "Do not retry. Ask the user to correct GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET "
-                    "in week2/.env or the env block of .mcp.json, then restart the MCP server."
-                ),
+                hint=(C.NOT_CONFIGURED_HINT),
             ) from exc
         except AuthUnavailable as exc:
             raise ToolFailure(
-                "network_error", str(exc), retryable=True,
+                C.ERROR_NETWORK_ERROR,
+                str(exc),
+                retryable=True,
                 retry_after_seconds=exc.retry_after_seconds,
                 hint=f"Wait {exc.retry_after_seconds}s, then retry. No browser login is needed.",
             ) from exc
-        if 300 <= resp.status_code < 400:
+        if HTTPStatus.MULTIPLE_CHOICES <= resp.status_code < HTTPStatus.BAD_REQUEST:
             raise ToolFailure(
-                "redirect_required", f"GitHub returned HTTP {resp.status_code} instead of the resource.",
+                C.ERROR_REDIRECT_REQUIRED,
+                f"GitHub returned HTTP {resp.status_code} instead of the resource.",
                 retryable=False,
-                hint=(
-                    "Call list_repos to find the current repository name. "
-                    "For a write, confirm the destination with the user before trying again."
-                ),
+                hint=(C.REDIRECT_HINT),
             )
-        if resp.status_code >= 400:
-            if method == "POST" and resp.status_code >= 500:
+        if resp.status_code >= HTTPStatus.BAD_REQUEST:
+            if method == C.HTTP_POST and resp.status_code >= HTTPStatus.INTERNAL_SERVER_ERROR:
                 raise _unknown_write_outcome()
             raise failure_from_response(resp)
         return resp
@@ -292,7 +254,7 @@ class GitHub:
         Raises:
             ToolFailure: For every failure, as in ``request``.
         """
-        return (await self.request("GET", path, params=params or None)).json()
+        return (await self.request(C.HTTP_GET, path, params=params or None)).json()
 
     async def _send(self, method, path, token, params, json) -> httpx.Response:
         """Make one HTTP request to GitHub with the given token.
@@ -312,7 +274,9 @@ class GitHub:
         """
         try:
             async with httpx.AsyncClient(
-                base_url=self.settings.api_url, timeout=20, follow_redirects=method in {"GET", "HEAD"},
+                base_url=self.settings.api_url,
+                timeout=config.API_TIMEOUT_SECONDS,
+                follow_redirects=method in {C.HTTP_GET, C.HTTP_HEAD},
             ) as http:
                 return await http.request(
                     method,
@@ -320,22 +284,22 @@ class GitHub:
                     params=params,
                     json=json,
                     headers={
-                        "Authorization": f"Bearer {token}",
-                        "Accept": "application/vnd.github+json",
-                        "X-GitHub-Api-Version": "2022-11-28",
+                        C.HEADER_AUTHORIZATION: f"{C.BEARER_PREFIX}{token}",
+                        C.HEADER_ACCEPT: C.GITHUB_MEDIA_TYPE,
+                        C.HEADER_API_VERSION: C.GITHUB_API_VERSION,
                     },
                 )
         except httpx.TimeoutException as exc:
             raise ToolFailure(
-                "network_error",
-                "GitHub did not respond in time.",
+                C.ERROR_NETWORK_ERROR,
+                C.NETWORK_TIMEOUT_MESSAGE,
                 retryable=True,
-                retry_after_seconds=5,
+                retry_after_seconds=config.TRANSIENT_RETRY_SECONDS,
             ) from exc
         except httpx.HTTPError as exc:
             raise ToolFailure(
-                "network_error",
+                C.ERROR_NETWORK_ERROR,
                 f"Could not reach GitHub: {type(exc).__name__}",
                 retryable=True,
-                retry_after_seconds=5,
+                retry_after_seconds=config.TRANSIENT_RETRY_SECONDS,
             ) from exc

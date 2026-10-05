@@ -5,12 +5,14 @@ from __future__ import annotations
 import asyncio
 import json
 import time
+from http import HTTPStatus
 
 import pytest
-from conftest import issue, write_token
 from fastmcp import Client
-
 from server import mcp
+
+from . import constants as T
+from .conftest import issue, write_token
 
 
 async def call(name: str, args: dict):
@@ -47,11 +49,16 @@ async def test_list_repos_sorts_and_shapes(fake, server_env):
         fake: The fake GitHub, to set routes and inspect requests.
         server_env: Environment pointing the server at the fake.
     """
-    result = await call("list_repos", {"limit": 5})
+    result = await call(T.TOOL_LIST_REPOS, {T.KEY_LIMIT: T.SMALL_REPO_LIMIT})
     data = result.structured_content
-    assert [r["full_name"] for r in data["repos"]] == ["alice/demo", "alice/old"]
-    assert set(data["repos"][0]) == {
-        "full_name", "description", "private", "has_issues", "open_issues_and_prs", "pushed_at"
+    assert [r[T.KEY_FULL_NAME] for r in data[T.KEY_REPOS]] == [T.REPO_NAME, T.OLD_REPO_NAME]
+    assert set(data[T.KEY_REPOS][0]) == {
+        T.KEY_FULL_NAME,
+        T.KEY_DESCRIPTION,
+        T.KEY_PRIVATE,
+        T.KEY_HAS_ISSUES,
+        T.KEY_OPEN_ISSUES_AND_PRS,
+        T.KEY_PUSHED_AT,
     }
 
 
@@ -62,9 +69,9 @@ async def test_list_repos_empty_is_explicit(fake, server_env):
         fake: The fake GitHub, to set routes and inspect requests.
         server_env: Environment pointing the server at the fake.
     """
-    fake.route("GET", "/user/installations", {"installations": []})
-    data = (await call("list_repos", {})).structured_content
-    assert data["repos"] == [] and data["note"].startswith("0 repositories")
+    fake.route(T.HTTP_GET, T.INSTALLATIONS_PATH, {T.KEY_INSTALLATIONS: []})
+    data = (await call(T.TOOL_LIST_REPOS, {})).structured_content
+    assert data[T.KEY_REPOS] == [] and data[T.KEY_NOTE].startswith(T.NO_REPOS_PREFIX)
 
 
 async def test_search_builds_query_and_drops_raw_fields(fake, server_env):
@@ -75,14 +82,23 @@ async def test_search_builds_query_and_drops_raw_fields(fake, server_env):
         server_env: Environment pointing the server at the fake.
     """
     result = await call(
-        "search_issues",
-        {"repo": "alice/demo", "query": "crash", "labels": ["good first issue"], "state": "all"},
+        T.TOOL_SEARCH_ISSUES,
+        {
+            T.KEY_REPO: T.REPO_NAME,
+            T.KEY_QUERY: T.SEARCH_QUERY,
+            T.KEY_LABELS: [T.STARTER_LABEL],
+            T.KEY_STATE: T.STATE_ALL,
+        },
     )
-    q = fake.calls("GET", "/search/issues")[0]["query"]["q"]
-    assert q == 'repo:alice/demo is:issue in:title,body label:"good first issue" "crash"'
-    item = result.structured_content["items"][0]
-    assert item["number"] == 7 and item["repo"] == "alice/demo" and item["labels"] == ["bug"]
-    assert "body" not in item and "reactions" not in item and "node_id" not in item
+    q = fake.calls(T.HTTP_GET, T.SEARCH_ISSUES_PATH)[0][T.KEY_QUERY][T.KEY_Q]
+    assert q == T.EXPECTED_LABEL_QUERY
+    item = result.structured_content[T.KEY_ITEMS][0]
+    assert (
+        item[T.KEY_NUMBER] == T.ISSUE_NUMBER
+        and item[T.KEY_REPO] == T.REPO_NAME
+        and item[T.KEY_LABELS] == [T.BUG_LABEL]
+    )
+    assert T.KEY_BODY not in item and T.KEY_REACTIONS not in item and T.KEY_NODE_ID not in item
 
 
 async def test_empty_search_points_at_list_repos(fake, server_env):
@@ -92,9 +108,9 @@ async def test_empty_search_points_at_list_repos(fake, server_env):
         fake: The fake GitHub, to set routes and inspect requests.
         server_env: Environment pointing the server at the fake.
     """
-    fake.route("GET", "/search/issues", {"total_count": 0, "items": []})
-    data = (await call("search_issues", {"repo": "alice/demo"})).structured_content
-    assert data["items"] == [] and "call list_repos" in data["note"]
+    fake.route(T.HTTP_GET, T.SEARCH_ISSUES_PATH, {T.KEY_TOTAL_COUNT: 0, T.KEY_ITEMS: []})
+    data = (await call(T.TOOL_SEARCH_ISSUES, {T.KEY_REPO: T.REPO_NAME})).structured_content
+    assert data[T.KEY_ITEMS] == [] and T.DISCOVERY_HINT in data[T.KEY_NOTE]
 
 
 async def test_get_issue_returns_newest_comments(fake, server_env):
@@ -104,20 +120,43 @@ async def test_get_issue_returns_newest_comments(fake, server_env):
         fake: The fake GitHub, to set routes and inspect requests.
         server_env: Environment pointing the server at the fake.
     """
-    fake.route("GET", "/repos/alice/demo/issues/7", issue(7, "Crash", comments=3, body="x" * 5000))
     fake.route(
-        "GET",
-        "/repos/alice/demo/issues/7/comments",
+        T.HTTP_GET,
+        T.ISSUE_PATH,
+        issue(
+            T.ISSUE_NUMBER,
+            T.SHORT_TITLE,
+            comments=T.COMMENT_COUNT,
+            body=T.PLACEHOLDER_TEXT * T.LONG_BODY_LENGTH,
+        ),
+    )
+    fake.route(
+        T.HTTP_GET,
+        T.COMMENTS_PATH,
         [
-            {"user": {"login": f"u{i}"}, "created_at": f"2026-09-0{i}T00:00:00Z", "body": f"c{i}"}
-            for i in (1, 2, 3)
+            {
+                T.KEY_USER: {T.KEY_LOGIN: T.COMMENT_AUTHOR.format(number=i)},
+                T.KEY_CREATED_AT: T.COMMENT_DATE.format(number=i),
+                T.KEY_BODY: T.COMMENT_BODY.format(number=i),
+            }
+            for i in range(1, T.COMMENT_COUNT + 1)
         ],
     )
-    data = (await call("get_issue", {"repo": "alice/demo", "number": 7, "max_comments": 2}))
+    data = await call(
+        T.TOOL_GET_ISSUE,
+        {
+            T.KEY_REPO: T.REPO_NAME,
+            T.KEY_NUMBER: T.ISSUE_NUMBER,
+            T.KEY_MAX_COMMENTS: T.RECENT_COMMENT_LIMIT,
+        },
+    )
     data = data.structured_content
-    assert [c["body"] for c in data["recent_comments"]] == ["c2", "c3"]
-    assert data["comments_omitted"] == 1
-    assert data["body_truncated"] and len(data["body"]) == 4001
+    assert [c[T.KEY_BODY] for c in data[T.KEY_RECENT_COMMENTS]] == [
+        T.SECOND_COMMENT,
+        T.THIRD_COMMENT,
+    ]
+    assert data[T.KEY_COMMENTS_OMITTED] == 1
+    assert data[T.KEY_BODY_TRUNCATED] and len(data[T.KEY_BODY]) == T.CLIPPED_BODY_LENGTH
 
 
 async def test_unknown_issue_is_not_retryable_and_points_at_search(fake, server_env):
@@ -127,9 +166,13 @@ async def test_unknown_issue_is_not_retryable_and_points_at_search(fake, server_
         fake: The fake GitHub, to set routes and inspect requests.
         server_env: Environment pointing the server at the fake.
     """
-    err = error_of(await call("get_issue", {"repo": "alice/demo", "number": 999}))
-    assert err["error"] == "not_found" and err["retryable"] is False
-    assert "search_issues" in err["hint"]
+    err = error_of(
+        await call(
+            T.TOOL_GET_ISSUE, {T.KEY_REPO: T.REPO_NAME, T.KEY_NUMBER: T.MISSING_ISSUE_NUMBER}
+        )
+    )
+    assert err[T.KEY_ERROR] == T.ERROR_NOT_FOUND and err[T.KEY_RETRYABLE] is False
+    assert T.TOOL_SEARCH_ISSUES in err[T.KEY_HINT]
 
 
 async def test_search_unknown_repo_maps_422_to_not_found(fake, server_env):
@@ -140,14 +183,16 @@ async def test_search_unknown_repo_maps_422_to_not_found(fake, server_env):
         server_env: Environment pointing the server at the fake.
     """
     fake.route(
-        "GET",
-        "/search/issues",
-        {"message": "Validation Failed", "errors": [{"message": "The listed users and "
-         "repositories cannot be searched either because the resources do not exist"}]},
-        status=422,
+        T.HTTP_GET,
+        T.SEARCH_ISSUES_PATH,
+        {
+            T.KEY_MESSAGE: T.VALIDATION_MESSAGE,
+            T.KEY_ERRORS: [{T.KEY_MESSAGE: T.UNSEARCHABLE_REPO_MESSAGE}],
+        },
+        status=HTTPStatus.UNPROCESSABLE_ENTITY,
     )
-    err = error_of(await call("search_issues", {"repo": "alice/nope"}))
-    assert err["error"] == "not_found" and "list_repos" in err["hint"]
+    err = error_of(await call(T.TOOL_SEARCH_ISSUES, {T.KEY_REPO: T.MISSING_REPO_NAME}))
+    assert err[T.KEY_ERROR] == T.ERROR_NOT_FOUND and T.TOOL_LIST_REPOS in err[T.KEY_HINT]
 
 
 async def test_rate_limit_is_retryable_with_wait(fake, server_env):
@@ -157,17 +202,17 @@ async def test_rate_limit_is_retryable_with_wait(fake, server_env):
         fake: The fake GitHub, to set routes and inspect requests.
         server_env: Environment pointing the server at the fake.
     """
-    reset = int(time.time()) + 42
+    reset = int(time.time()) + T.RATE_LIMIT_WAIT
     fake.route(
-        "GET",
-        "/search/issues",
-        {"message": "API rate limit exceeded"},
-        status=403,
-        headers={"x-ratelimit-remaining": "0", "x-ratelimit-reset": str(reset)},
+        T.HTTP_GET,
+        T.SEARCH_ISSUES_PATH,
+        {T.KEY_MESSAGE: T.RATE_LIMIT_MESSAGE},
+        status=HTTPStatus.FORBIDDEN,
+        headers={T.HEADER_RATE_REMAINING: str(0), T.HEADER_RATE_RESET: str(reset)},
     )
-    err = error_of(await call("search_issues", {"repo": "alice/demo"}))
-    assert err["error"] == "rate_limited" and err["retryable"] is True
-    assert 40 <= err["retry_after_seconds"] <= 42
+    err = error_of(await call(T.TOOL_SEARCH_ISSUES, {T.KEY_REPO: T.REPO_NAME}))
+    assert err[T.KEY_ERROR] == T.ERROR_RATE_LIMITED and err[T.KEY_RETRYABLE] is True
+    assert T.RATE_LIMIT_WAIT_MIN <= err[T.KEY_RETRY_AFTER_SECONDS] <= T.RATE_LIMIT_WAIT
 
 
 async def test_forbidden_is_not_retryable(fake, server_env):
@@ -177,9 +222,11 @@ async def test_forbidden_is_not_retryable(fake, server_env):
         fake: The fake GitHub, to set routes and inspect requests.
         server_env: Environment pointing the server at the fake.
     """
-    fake.route("GET", "/repos/alice/demo/issues/7", {"message": "Resource not accessible"}, 403)
-    err = error_of(await call("get_issue", {"repo": "alice/demo", "number": 7}))
-    assert err["error"] == "forbidden" and err["retryable"] is False
+    fake.route(T.HTTP_GET, T.ISSUE_PATH, {T.KEY_MESSAGE: T.FORBIDDEN_MESSAGE}, HTTPStatus.FORBIDDEN)
+    err = error_of(
+        await call(T.TOOL_GET_ISSUE, {T.KEY_REPO: T.REPO_NAME, T.KEY_NUMBER: T.ISSUE_NUMBER})
+    )
+    assert err[T.KEY_ERROR] == T.ERROR_FORBIDDEN and err[T.KEY_RETRYABLE] is False
 
 
 async def test_server_error_is_retryable(fake, server_env):
@@ -189,9 +236,13 @@ async def test_server_error_is_retryable(fake, server_env):
         fake: The fake GitHub, to set routes and inspect requests.
         server_env: Environment pointing the server at the fake.
     """
-    fake.route("GET", "/repos/alice/demo/issues/7", {"message": "boom"}, 502)
-    err = error_of(await call("get_issue", {"repo": "alice/demo", "number": 7}))
-    assert err["error"] == "upstream_error" and err["retryable"] is True
+    fake.route(
+        T.HTTP_GET, T.ISSUE_PATH, {T.KEY_MESSAGE: T.UPSTREAM_ERROR_MESSAGE}, HTTPStatus.BAD_GATEWAY
+    )
+    err = error_of(
+        await call(T.TOOL_GET_ISSUE, {T.KEY_REPO: T.REPO_NAME, T.KEY_NUMBER: T.ISSUE_NUMBER})
+    )
+    assert err[T.KEY_ERROR] == T.ERROR_UPSTREAM_ERROR and err[T.KEY_RETRYABLE] is True
 
 
 async def test_network_down_is_retryable(fake, server_env, monkeypatch):
@@ -202,9 +253,9 @@ async def test_network_down_is_retryable(fake, server_env, monkeypatch):
         server_env: Environment pointing the server at the fake.
         monkeypatch: Used to change environment variables.
     """
-    monkeypatch.setenv("GITHUB_API_URL", "http://127.0.0.1:9")
-    err = error_of(await call("list_repos", {}))
-    assert err["error"] == "network_error" and err["retryable"] is True
+    monkeypatch.setenv(T.GITHUB_API_URL, T.UNREACHABLE_API_URL)
+    err = error_of(await call(T.TOOL_LIST_REPOS, {}))
+    assert err[T.KEY_ERROR] == T.ERROR_NETWORK_ERROR and err[T.KEY_RETRYABLE] is True
 
 
 async def test_schema_rejects_bad_arguments_before_any_request(fake, server_env):
@@ -215,10 +266,10 @@ async def test_schema_rejects_bad_arguments_before_any_request(fake, server_env)
         server_env: Environment pointing the server at the fake.
     """
     for name, args in [
-        ("search_issues", {"repo": "https://github.com/alice/demo"}),
-        ("search_issues", {"repo": "alice/demo", "state": "opened"}),
-        ("get_issue", {"repo": "alice/demo", "number": 0}),
-        ("create_issue", {"repo": "alice/demo", "title": ""}),
+        (T.TOOL_SEARCH_ISSUES, {T.KEY_REPO: T.REPO_WEB_URL}),
+        (T.TOOL_SEARCH_ISSUES, {T.KEY_REPO: T.REPO_NAME, T.KEY_STATE: T.INVALID_STATE}),
+        (T.TOOL_GET_ISSUE, {T.KEY_REPO: T.REPO_NAME, T.KEY_NUMBER: 0}),
+        (T.TOOL_CREATE_ISSUE, {T.KEY_REPO: T.REPO_NAME, T.KEY_TITLE: ""}),
     ]:
         assert (await call(name, args)).is_error
     assert fake.requests == []
@@ -231,12 +282,15 @@ async def test_create_issue_dry_run_writes_nothing_and_flags_duplicates(fake, se
         fake: The fake GitHub, to set routes and inspect requests.
         server_env: Environment pointing the server at the fake.
     """
-    data = (await call("create_issue", {"repo": "alice/demo", "title": "Crash", "labels": ["bug"]}))
+    data = await call(
+        T.TOOL_CREATE_ISSUE,
+        {T.KEY_REPO: T.REPO_NAME, T.KEY_TITLE: T.SHORT_TITLE, T.KEY_LABELS: [T.BUG_LABEL]},
+    )
     data = data.structured_content
-    assert data["dry_run"] and not data["created"] and data["issue"] is None
-    assert any("Possible duplicate: #7" in w for w in data["warnings"])
-    assert "dry_run=false" in data["next_step"]
-    assert fake.calls("POST", "/repos/alice/demo/issues") == []
+    assert data[T.KEY_DRY_RUN] and not data[T.KEY_CREATED] and data[T.KEY_ISSUE] is None
+    assert any(T.DUPLICATE_WARNING in w for w in data[T.KEY_WARNINGS])
+    assert T.COMMIT_HINT in data[T.KEY_NEXT_STEP]
+    assert fake.calls(T.HTTP_POST, T.ISSUES_PATH) == []
 
 
 async def test_create_issue_commit_posts_once(fake, server_env):
@@ -246,11 +300,20 @@ async def test_create_issue_commit_posts_once(fake, server_env):
         fake: The fake GitHub, to set routes and inspect requests.
         server_env: Environment pointing the server at the fake.
     """
-    args = {"repo": "alice/demo", "title": "New bug", "body": "details", "labels": ["bug"]}
-    data = (await call("create_issue", {**args, "dry_run": False})).structured_content
-    posts = fake.calls("POST", "/repos/alice/demo/issues")
-    assert len(posts) == 1 and posts[0]["json"] == {"title": "New bug", "body": "details", "labels": ["bug"]}
-    assert data["created"] and data["issue"]["number"] == 42
+    args = {
+        T.KEY_REPO: T.REPO_NAME,
+        T.KEY_TITLE: T.NEW_ISSUE_TITLE,
+        T.KEY_BODY: T.NEW_ISSUE_BODY,
+        T.KEY_LABELS: [T.BUG_LABEL],
+    }
+    data = (await call(T.TOOL_CREATE_ISSUE, {**args, T.KEY_DRY_RUN: False})).structured_content
+    posts = fake.calls(T.HTTP_POST, T.ISSUES_PATH)
+    assert len(posts) == 1 and posts[0][T.KEY_JSON] == {
+        T.KEY_TITLE: T.NEW_ISSUE_TITLE,
+        T.KEY_BODY: T.NEW_ISSUE_BODY,
+        T.KEY_LABELS: [T.BUG_LABEL],
+    }
+    assert data[T.KEY_CREATED] and data[T.KEY_ISSUE][T.KEY_NUMBER] == T.CREATED_ISSUE_NUMBER
 
 
 async def test_create_issue_rejects_unknown_labels_even_on_commit(fake, server_env):
@@ -260,10 +323,15 @@ async def test_create_issue_rejects_unknown_labels_even_on_commit(fake, server_e
         fake: The fake GitHub, to set routes and inspect requests.
         server_env: Environment pointing the server at the fake.
     """
-    args = {"repo": "alice/demo", "title": "x", "labels": ["bugg"], "dry_run": False}
-    err = error_of(await call("create_issue", args))
-    assert err["error"] == "unknown_labels" and "bug" in err["hint"]
-    assert fake.calls("POST", "/repos/alice/demo/issues") == []
+    args = {
+        T.KEY_REPO: T.REPO_NAME,
+        T.KEY_TITLE: T.PLACEHOLDER_TEXT,
+        T.KEY_LABELS: [T.UNKNOWN_LABEL],
+        T.KEY_DRY_RUN: False,
+    }
+    err = error_of(await call(T.TOOL_CREATE_ISSUE, args))
+    assert err[T.KEY_ERROR] == T.ERROR_UNKNOWN_LABELS and T.BUG_LABEL in err[T.KEY_HINT]
+    assert fake.calls(T.HTTP_POST, T.ISSUES_PATH) == []
 
 
 async def test_create_issue_refuses_repo_with_issues_disabled(fake, server_env):
@@ -273,9 +341,11 @@ async def test_create_issue_refuses_repo_with_issues_disabled(fake, server_env):
         fake: The fake GitHub, to set routes and inspect requests.
         server_env: Environment pointing the server at the fake.
     """
-    fake.route("GET", "/repos/alice/demo", {"full_name": "alice/demo", "has_issues": False})
-    err = error_of(await call("create_issue", {"repo": "alice/demo", "title": "x"}))
-    assert err["error"] == "issues_disabled"
+    fake.route(T.HTTP_GET, T.REPO_PATH, {T.KEY_FULL_NAME: T.REPO_NAME, T.KEY_HAS_ISSUES: False})
+    err = error_of(
+        await call(T.TOOL_CREATE_ISSUE, {T.KEY_REPO: T.REPO_NAME, T.KEY_TITLE: T.PLACEHOLDER_TEXT})
+    )
+    assert err[T.KEY_ERROR] == T.ERROR_ISSUES_DISABLED
 
 
 # ---------- OAuth: caching, silent refresh, mid-session death ----------
@@ -288,8 +358,8 @@ async def test_cached_token_is_reused_without_refresh(fake, server_env):
         fake: The fake GitHub, to set routes and inspect requests.
         server_env: Environment pointing the server at the fake.
     """
-    await call("list_repos", {})
-    await call("list_repos", {})
+    await call(T.TOOL_LIST_REPOS, {})
+    await call(T.TOOL_LIST_REPOS, {})
     assert fake.refresh_calls == 0
 
 
@@ -301,14 +371,17 @@ async def test_expired_token_is_refreshed_silently_and_rotated(fake, server_env,
         server_env: Environment pointing the server at the fake.
         tmp_path: Directory holding the token file.
     """
-    write_token(tmp_path / "token.json", expires_in=-10)
-    fake.valid_tokens = {"some-token-the-server-does-not-have"}
-    result = await call("list_repos", {})
+    write_token(tmp_path / T.TOKEN_FILENAME, expires_in=T.EXPIRED_SECONDS)
+    fake.valid_tokens = {T.UNKNOWN_ACCESS_TOKEN}
+    result = await call(T.TOOL_LIST_REPOS, {})
     assert not result.is_error
     assert fake.refresh_calls == 1
-    cached = json.loads((tmp_path / "token.json").read_text())
-    assert cached["access_token"] == "ghu_new1" and cached["refresh_token"] == "ghr_new1"
-    assert oct((tmp_path / "token.json").stat().st_mode)[-3:] == "600"
+    cached = json.loads((tmp_path / T.TOKEN_FILENAME).read_text())
+    assert (
+        cached[T.KEY_ACCESS_TOKEN] == T.ROTATED_ACCESS_TOKEN
+        and cached[T.KEY_REFRESH_TOKEN] == T.ROTATED_REFRESH_TOKEN
+    )
+    assert (tmp_path / T.TOKEN_FILENAME).stat().st_mode & T.FILE_MODE_MASK == T.PRIVATE_FILE_MODE
 
 
 async def test_401_mid_session_refreshes_once_and_retries(fake, server_env):
@@ -318,8 +391,8 @@ async def test_401_mid_session_refreshes_once_and_retries(fake, server_env):
         fake: The fake GitHub, to set routes and inspect requests.
         server_env: Environment pointing the server at the fake.
     """
-    fake.valid_tokens = {"revoked-elsewhere"}
-    result = await call("get_issue", {"repo": "alice/demo", "number": 7})
+    fake.valid_tokens = {T.REVOKED_ACCESS_TOKEN}
+    result = await call(T.TOOL_GET_ISSUE, {T.KEY_REPO: T.REPO_NAME, T.KEY_NUMBER: T.ISSUE_NUMBER})
     assert not result.is_error and fake.refresh_calls == 1
 
 
@@ -332,9 +405,9 @@ async def test_dead_refresh_token_returns_auth_required(fake, server_env):
     """
     fake.valid_tokens = set()
     fake.refresh_tokens = set()
-    err = error_of(await call("list_repos", {}))
-    assert err["error"] == "auth_required" and err["retryable"] is False
-    assert "login.py" in err["hint"]
+    err = error_of(await call(T.TOOL_LIST_REPOS, {}))
+    assert err[T.KEY_ERROR] == T.ERROR_AUTH_REQUIRED and err[T.KEY_RETRYABLE] is False
+    assert T.LOGIN_HINT in err[T.KEY_HINT]
 
 
 async def test_missing_token_file_returns_auth_required(fake, server_env, tmp_path):
@@ -345,9 +418,9 @@ async def test_missing_token_file_returns_auth_required(fake, server_env, tmp_pa
         server_env: Environment pointing the server at the fake.
         tmp_path: Directory holding the token file.
     """
-    (tmp_path / "token.json").unlink()
-    err = error_of(await call("list_repos", {}))
-    assert err["error"] == "auth_required"
+    (tmp_path / T.TOKEN_FILENAME).unlink()
+    err = error_of(await call(T.TOOL_LIST_REPOS, {}))
+    assert err[T.KEY_ERROR] == T.ERROR_AUTH_REQUIRED
     assert fake.requests == []
 
 
@@ -359,9 +432,9 @@ async def test_missing_client_credentials_is_not_configured(fake, server_env, mo
         server_env: Environment pointing the server at the fake.
         monkeypatch: Used to change environment variables.
     """
-    monkeypatch.delenv("GITHUB_CLIENT_SECRET")
-    err = error_of(await call("list_repos", {}))
-    assert err["error"] == "not_configured" and err["retryable"] is False
+    monkeypatch.delenv(T.GITHUB_CLIENT_SECRET)
+    err = error_of(await call(T.TOOL_LIST_REPOS, {}))
+    assert err[T.KEY_ERROR] == T.ERROR_NOT_CONFIGURED and err[T.KEY_RETRYABLE] is False
 
 
 async def test_concurrent_calls_refresh_only_once(fake, server_env, tmp_path):
@@ -373,16 +446,22 @@ async def test_concurrent_calls_refresh_only_once(fake, server_env, tmp_path):
         tmp_path: Directory holding the token file.
     """
     # GitHub refresh tokens are single-use: a second refresh with the same one would fail.
-    write_token(tmp_path / "token.json", expires_in=-10)
+    write_token(tmp_path / T.TOKEN_FILENAME, expires_in=T.EXPIRED_SECONDS)
     async with Client(mcp) as client:
         results = await asyncio.gather(
-            *[client.call_tool("list_repos", {}, raise_on_error=False) for _ in range(5)]
+            *[
+                client.call_tool(T.TOOL_LIST_REPOS, {}, raise_on_error=False)
+                for _ in range(T.CONCURRENT_CALLS)
+            ]
         )
     assert not any(r.is_error for r in results)
     assert fake.refresh_calls == 1
 
 
-@pytest.mark.parametrize("retry_after,expected_wait", [("7", 7), ("invalid-date", 60)])
+@pytest.mark.parametrize(
+    "retry_after,expected_wait",
+    [(str(T.NUMERIC_RETRY_WAIT), T.NUMERIC_RETRY_WAIT), (T.INVALID_DATE, T.FALLBACK_RETRY_WAIT)],
+)
 async def test_secondary_rate_limit_retry_after(fake, server_env, retry_after, expected_wait):
     """Honor a numeric Retry-After and fall back safely for a malformed date.
 
@@ -392,7 +471,14 @@ async def test_secondary_rate_limit_retry_after(fake, server_env, retry_after, e
         retry_after: The Retry-After header value.
         expected_wait: The requested delay or the one-minute fallback.
     """
-    fake.route("GET", "/search/issues", {"message": "secondary rate limit"}, 403,
-               {"retry-after": retry_after})
-    err = error_of(await call("search_issues", {"repo": "alice/demo"}))
-    assert err["error"] == "rate_limited" and err["retry_after_seconds"] == expected_wait
+    fake.route(
+        T.HTTP_GET,
+        T.SEARCH_ISSUES_PATH,
+        {T.KEY_MESSAGE: T.SECONDARY_LIMIT_MESSAGE},
+        HTTPStatus.FORBIDDEN,
+        {T.HEADER_RETRY_AFTER: retry_after},
+    )
+    err = error_of(await call(T.TOOL_SEARCH_ISSUES, {T.KEY_REPO: T.REPO_NAME}))
+    assert (
+        err[T.KEY_ERROR] == T.ERROR_RATE_LIMITED and err[T.KEY_RETRY_AFTER_SECONDS] == expected_wait
+    )
