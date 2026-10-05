@@ -29,13 +29,13 @@ Audits an algorithm implementation against a research paper or pinned upstream c
 > It names the action and the questions I ask: whether code implements a paper faithfully, preserves upstream behavior, or leaves something out. The explicit exclusions keep paper summaries and general reviews outside its scope, following the [Agent Skills description guidance](https://agentskills.io/skill-creation/best-practices).
 
 **Judgment encoded in the body** (what it says to do when things are ambiguous, and what not to do):
-> Pin both sides, read and test the same revision, trace adapters and delegated code, and verify operators in raw source. Separate method requirements from experimental settings. Classify each finding as equivalent, an intentional adaptation, a discrepancy, or insufficient evidence. Do not infer intent, equivalence, or performance from names or passing tests. The final check requires a source obligation and implementation evidence for each finding; implementation edits require a request to fix it.
+> Pin both sides, read and test the same revision, trace adapters and delegated code, and verify operators in raw source. Check that the reference states a requirement before judging fidelity. Separate method requirements from experimental settings. Classify each finding as equivalent, an intentional adaptation, a discrepancy, or insufficient evidence. Do not infer intent, equivalence, or performance from names or passing tests. The final check requires a source obligation and implementation evidence for each finding; implementation edits require a request to fix it.
 
 **Supporting files**, if any, and why they aren't inline:
 
 | File | Contents | Why it's separate |
 |---|---|---|
-| [references/assessment-guide.md](paper-to-code-audit/references/assessment-guide.md) | Classification guidance, three worked examples, and a report table. | The main file keeps the default procedure and exact commands; examples load when needed, following [progressive disclosure](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices). |
+| [references/assessment-guide.md](paper-to-code-audit/references/assessment-guide.md) | Classification guidance, four worked examples, and a report table. | Keeps detailed examples and the report format outside the main procedure; the skill reads this guide before an audit. |
 
 
 ## Part III: Testing
@@ -60,14 +60,14 @@ Each prompt ran in a fresh Claude Code 2.1.289 session (`claude-fable-5-1`) with
 | Acceptance on valid observations | Equivalent | The wired policy requires identical case/repetition keys and strict improvement; ties are rejected. [Upstream policy](https://github.com/microsoft/AutoSaddler/blob/9df6d2e3e1d3946057243690bca28e136fa81179/src/autosaddler/v2/core/policies.py#L102). |
 | Invalid rollout handling | Insufficient evidence | The policy filters invalid pairs; the paper does not specify this case. [Filtering](https://github.com/microsoft/AutoSaddler/blob/9df6d2e3e1d3946057243690bca28e136fa81179/src/autosaddler/v2/core/policies.py#L112). |
 | Selection on normal completion | Equivalent | Upstream selects the highest development score, and the adapter returns that candidate. [Ranking](https://github.com/microsoft/AutoSaddler/blob/9df6d2e3e1d3946057243690bca28e136fa81179/src/autosaddler/v2/core/policies.py#L146), [return path](https://github.com/gilad12-coder/skynet/blob/c9b9201e895661b96cf8c689b5ac2012369ecbfe/backend/core/service_gateway/optimization/blackbox/autosaddler_runner.py#L1446). |
-| Early stopping | Insufficient evidence | The adapter recovers the best scored candidate, otherwise an unscored fallback. The paper does not specify this path. [Fallback](https://github.com/gilad12-coder/skynet/blob/c9b9201e895661b96cf8c689b5ac2012369ecbfe/backend/core/service_gateway/optimization/blackbox/autosaddler_runner.py#L1294). |
+| Timeout or evaluator failure | Insufficient evidence | The runner attaches a recovered candidate to an error; the parent normally raises `ServiceError`. The paper does not specify interruption recovery. [Recovery](https://github.com/gilad12-coder/skynet/blob/c9b9201e895661b96cf8c689b5ac2012369ecbfe/backend/core/service_gateway/optimization/blackbox/autosaddler_runner.py#L1490), [parent](https://github.com/gilad12-coder/skynet/blob/c9b9201e895661b96cf8c689b5ac2012369ecbfe/backend/core/service_gateway/optimization/blackbox/native_runtime.py#L892). |
 
-Earlier trials exposed an overbroad dependency search and a fetched summary that reversed a tie-break. I narrowed source lookup, required raw code for operator claims, and reran the audit. The final run got the tie-break right, but still overclassified early stopping; I corrected that row above. This remains a review aid, not an automatic fidelity verdict.
+Earlier trials exposed an overbroad dependency search, a fetched summary that reversed a tie-break, and overclassification of unspecified behavior. I restricted source lookup, required raw code, ordered the classification rules, and added a cancellation counterexample. A fresh regression test and full rerun correctly left unspecified interruption recovery unverified. The four trigger results above remain applicable because the description did not change.
 
 No implementation files changed. These are source-inspection findings: the checkout lacked the upstream runtime, test commands were unavailable under the evaluation permissions, and no Skynet tests or benchmarks ran.
 
 
 ## Submission
-1. `Command (⌘) + F` for `TODO`. No results means you're done.
+1. Check that no unanswered placeholders remain.
 2. Confirm the skill directory itself is committed under `week3/`.
 3. Push all changes to your remote repository and submit via Gradescope.

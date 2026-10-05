@@ -31,13 +31,14 @@ These examples are illustrative, not findings about the repository being audited
 | The method requires separate development examples. An adapter passes the training examples under new development IDs and documents that it deliberately re-scores those same examples. | Intentional adaptation | The adapter changes the validation protocol. Re-scoring can check repeatability but cannot support a claim of independent development-set generalization. |
 | The reference returns the highest development-scored candidate. Candidate A scores 0.9; later candidate B is accepted on a training batch but scores 0.8 on development. The return path chooses B because it is newest. | Discrepancy | Return selection violates the development-best rule. A test containing only monotonically improving candidates would miss it; this two-candidate case distinguishes the behaviors. |
 | An adapter selects a policy called `StrictImprovement`, but its pinned dependency is unavailable and all tests replace the policy with a mock. | Insufficient evidence | The adapter selects that policy; whether ties are rejected remains unverified. Inspect the pinned implementation or test its tie behavior. |
+| A paper specifies selection after a completed run but says nothing about cancellation. An adapter documents returning its last checkpoint when canceled. | Insufficient evidence | The fallback is documented, but there is no paper requirement to preserve or change. Describe the fallback without calling it equivalent or an intentional adaptation of the paper. |
 
 ## Compact report shape
 
 Start with the scope and conclusion: what was checked, whether that part matches, and the material limitation. Identify the repository commit and paper version or upstream commit. Note relevant uncommitted changes if reviewing the working tree.
 
-| Requirement and reference | Implementation evidence | Assessment | Test evidence and consequence |
+| Requirement and comparison source | Implementation evidence | Assessment | Test evidence and consequence |
 |---|---|---|---|
-| A specific obligation with its source location | Reachable symbol and verified location, including relevant configuration | Equivalent / Intentional adaptation / Discrepancy / Insufficient evidence | Actual test status; what this means for the claimed behavior |
+| A specific obligation and its source location, or explicitly "not specified" | Reachable symbol and verified location, including relevant configuration | Equivalent / Intentional adaptation / Discrepancy / Insufficient evidence | Actual test status; what this means for the claimed behavior |
 
 End with actionable corrections or the smallest checks needed to resolve uncertainty. Omit generic recommendations and a numeric fidelity percentage. A bounded review with unresolved evidence is more useful than a blanket assurance.

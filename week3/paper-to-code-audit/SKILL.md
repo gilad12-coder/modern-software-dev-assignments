@@ -52,14 +52,14 @@ Record passed, failed, skipped, or not-run checks. Mock tests prove only the exe
 
 ## Classify the evidence
 
-Use exactly one of these classifications for each requirement:
+Name the comparison source for each row, then apply these rules in order. Use exactly one classification:
 
-- **Equivalent:** evidence supports the required behavior, including any alternative formulation.
-- **Intentional adaptation:** a documented decision changes the requirement. This is a confirmed difference, not a fidelity pass; explain the consequence.
-- **Discrepancy:** reachable code omits or contradicts a requirement without an established adaptation rationale.
-- **Insufficient evidence:** the requirement or behavior remains unverified; name the smallest resolving check.
+1. **Insufficient evidence:** the source leaves the behavior unspecified, or required implementation evidence is missing. Describe what is known and the smallest resolving check. A documented implementation choice cannot be an adaptation of a rule the source never states.
+2. **Equivalent:** evidence supports the stated requirement, including any alternative formulation.
+3. **Intentional adaptation:** code changes a stated requirement and documentation establishes the rationale. This is a confirmed difference, not a fidelity pass; explain the consequence.
+4. **Discrepancy:** reachable code omits or contradicts a stated requirement without an established adaptation rationale.
 
-When the reference leaves behavior unspecified, mark the comparison **Insufficient evidence**; describe the implementation without calling it equivalent. Do not invent intent, assume mathematical equivalence, or predict benchmark gains or losses from code inspection.
+A paper can leave behavior open that upstream fixes; assess those sources separately instead of switching comparators to justify a label. Do not invent intent, assume mathematical equivalence, or predict benchmark gains or losses from code inspection.
 
 ## Report without silently fixing
 
