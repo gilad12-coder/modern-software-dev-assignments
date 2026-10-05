@@ -76,3 +76,24 @@ async def test_stdio_chain_and_error(fake, server_env):
         "/user/installations/1/repositories",
         "/search/issues",
     ]
+
+
+async def test_stdio_preview_then_explicit_creation(fake, server_env):
+    """Preview over stdio without writing, then create once on explicit commit.
+
+    Args:
+        fake: Local fake GitHub, used to inspect issue writes.
+        server_env: Isolated credentials and endpoints for the subprocess.
+    """
+    arguments = {"repo": "alice/demo", "title": "Regression test", "labels": ["bug"]}
+    async with stdio_client(server_env) as client:
+        preview = await client.call_tool("create_issue", arguments)
+        assert preview.structured_content["created"] is False
+        assert preview.structured_content["dry_run"] is True
+        assert fake.calls("POST", "/repos/alice/demo/issues") == []
+        created = await client.call_tool("create_issue", {**arguments, "dry_run": False})
+    assert created.structured_content["created"] is True
+    assert created.structured_content["issue"]["number"] == 42
+    writes = fake.calls("POST", "/repos/alice/demo/issues")
+    assert len(writes) == 1
+    assert writes[0]["json"] == {"title": "Regression test", "body": "", "labels": ["bug"]}

@@ -17,7 +17,7 @@ import webbrowser
 
 import httpx
 
-from oauth import AuthRequired, AuthUnavailable, Settings, TokenStore, exchange
+from oauth import AuthRequired, AuthUnavailable, NotConfigured, Settings, TokenStore, exchange
 
 
 def pkce_pair() -> tuple[str, str]:
@@ -55,13 +55,16 @@ def authorize_url(settings: Settings, state: str, challenge: str) -> str:
     return f"{settings.oauth_url}/login/oauth/authorize?{query}"
 
 
-def wait_for_code(port: int, expected_state: str, timeout: float = 300) -> str:
+def wait_for_code(
+    port: int, expected_state: str, timeout: float = 300, *, browser_url: str | None = None
+) -> str:
     """Serve one request on 127.0.0.1:<port>/callback and return the ``code`` it carries.
 
     Args:
         port: Loopback port to listen on.
         expected_state: The ``state`` sent in the authorize URL.
         timeout: Seconds to wait for the browser before giving up.
+        browser_url: Authorization page to open once the callback listener is bound.
 
     Returns:
         The authorization code from GitHub.
@@ -85,13 +88,15 @@ def wait_for_code(port: int, expected_state: str, timeout: float = 300) -> str:
                 result["error"] = "state mismatch (possible CSRF); start the login again"
             elif "error" in params:
                 result["error"] = f"{params['error']}: {params.get('error_description', '')}"
+            elif not params.get("code"):
+                result["error"] = "missing authorization code; start the login again"
             else:
-                result["code"] = params.get("code", "")
+                result["code"] = params["code"]
             ok = "code" in result
             self.send_response(200 if ok else 400)
             self.send_header("Content-Type", "text/plain; charset=utf-8")
             self.end_headers()
-            msg = "Logged in. You can close this tab." if ok else f"Login failed: {result['error']}"
+            msg = "Authorization received. Return to the terminal to finish login." if ok else f"Login failed: {result['error']}"
             self.wfile.write(msg.encode())
             threading.Thread(target=self.server.shutdown, daemon=True).start()
 
@@ -107,6 +112,8 @@ def wait_for_code(port: int, expected_state: str, timeout: float = 300) -> str:
     timer = threading.Timer(timeout, server.shutdown)
     timer.start()
     try:
+        if browser_url:
+            webbrowser.open(browser_url)
         server.serve_forever()
     finally:
         timer.cancel()
@@ -143,8 +150,7 @@ def main() -> None:
     verifier, challenge = pkce_pair()
     url = authorize_url(settings, state, challenge)
     print(f"Opening your browser to authorize. If it doesn't open, visit:\n\n  {url}\n")
-    webbrowser.open(url)
-    code = wait_for_code(settings.callback_port, state)
+    code = wait_for_code(settings.callback_port, state, browser_url=url)
     try:
         token = asyncio.run(
             exchange(
@@ -152,7 +158,7 @@ def main() -> None:
                 {"code": code, "code_verifier": verifier, "redirect_uri": settings.redirect_uri},
             )
         )
-    except (AuthRequired, AuthUnavailable) as exc:
+    except (AuthRequired, AuthUnavailable, NotConfigured) as exc:
         sys.exit(f"Code exchange failed: {exc}")
     TokenStore(settings.token_file).save(token)
     login = asyncio.run(whoami(settings, token.access_token))

@@ -17,6 +17,7 @@ import webbrowser
 from pathlib import Path
 
 import httpx
+from dotenv import dotenv_values, set_key
 
 from oauth import Settings
 
@@ -48,7 +49,7 @@ def manifest(settings: Settings, name: str) -> dict:
 
 def main() -> None:
     """Create the app through the browser and save its client credentials to ``.env``."""
-    if ENV_FILE.exists() and "GITHUB_CLIENT_SECRET=" in ENV_FILE.read_text():
+    if ENV_FILE.exists() and dotenv_values(ENV_FILE).get("GITHUB_CLIENT_SECRET"):
         sys.exit(f"{ENV_FILE} already has credentials; delete it to create a new app.")
     settings = Settings.from_env()
     name = f"issues-mcp-{secrets.token_hex(3)}"
@@ -106,9 +107,11 @@ def main() -> None:
     app = resp.json()
     # The response also carries the app's private key and webhook secret. This server
     # never acts as the app itself, so they are deliberately dropped, not stored.
-    env_text = f"GITHUB_CLIENT_ID={app['client_id']}\nGITHUB_CLIENT_SECRET={app['client_secret']}\n"
-    ENV_FILE.write_text(env_text)
+    # Restrict access before writing secrets; keep optional settings in copied templates.
+    ENV_FILE.touch(mode=0o600, exist_ok=True)
     ENV_FILE.chmod(0o600)
+    set_key(ENV_FILE, "GITHUB_CLIENT_ID", app["client_id"])
+    set_key(ENV_FILE, "GITHUB_CLIENT_SECRET", app["client_secret"])
     print(f"Saved client ID and secret to {ENV_FILE} (gitignored, mode 0600).")
     print(f"Next: install the app on the repos it may touch: {app['html_url']}/installations/new")
     print("Then: uv run --directory week2 python login.py")

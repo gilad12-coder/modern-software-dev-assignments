@@ -9,7 +9,9 @@ from __future__ import annotations
 import asyncio
 import fcntl
 import json
+import math
 import os
+import tempfile
 import time
 import weakref
 from dataclasses import asdict, dataclass
@@ -77,11 +79,21 @@ class AuthRequired(Exception):
 
 
 class NotConfigured(Exception):
-    """The server was started without the GitHub App's client credentials."""
+    """The GitHub App's client credentials are missing or invalid."""
 
 
 class AuthUnavailable(Exception):
     """The token endpoint could not be reached. The token itself may still be fine."""
+
+    def __init__(self, message: str, retry_after_seconds: int = 5):
+        """Record a temporary failure and when it is safe to retry.
+
+        Args:
+            message: Explanation of the temporary failure.
+            retry_after_seconds: Minimum wait before another attempt.
+        """
+        super().__init__(message)
+        self.retry_after_seconds = retry_after_seconds
 
 
 @dataclass(frozen=True)
@@ -135,13 +147,18 @@ class TokenStore:
         """Read the cached token.
 
         Returns:
-            The token, or None if the file is missing or unreadable.
+            The token, or None if the file is missing, unreadable, or invalid.
         """
         try:
-            return Token(**json.loads(self.path.read_text()))
-        except FileNotFoundError:
-            return None
-        except (ValueError, TypeError):
+            token = Token(**json.loads(self.path.read_text()))
+            if any(not isinstance(value, str) or not value.strip()
+                   for value in (token.access_token, token.refresh_token)):
+                return None
+            if any(type(value) not in (int, float) or not math.isfinite(value)
+                   for value in (token.expires_at, token.refresh_expires_at)):
+                return None
+            return token
+        except (OSError, ValueError, TypeError, OverflowError):
             return None
 
     def save(self, token: Token) -> None:
@@ -151,11 +168,14 @@ class TokenStore:
             token: The token to cache.
         """
         self.path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-        tmp = self.path.with_suffix(".tmp")
-        fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-        with os.fdopen(fd, "w") as f:
-            json.dump(asdict(token), f)
-        os.replace(tmp, self.path)
+        fd, name = tempfile.mkstemp(prefix=f".{self.path.name}.", dir=self.path.parent)
+        tmp = Path(name)
+        try:
+            with os.fdopen(fd, "w") as f:
+                json.dump(asdict(token), f)
+            os.replace(tmp, self.path)
+        finally:
+            tmp.unlink(missing_ok=True)
 
 
 async def exchange(settings: Settings, payload: dict) -> Token:
@@ -169,8 +189,9 @@ async def exchange(settings: Settings, payload: dict) -> Token:
         The new token pair.
 
     Raises:
-        AuthUnavailable: The endpoint could not be reached or returned a 5xx.
+        AuthUnavailable: The endpoint is unreachable, rate limited, or temporarily unusable.
         AuthRequired: GitHub refused the grant, or sent no refresh token.
+        NotConfigured: GitHub rejected the app's client credentials.
     """
     payload = {"client_id": settings.client_id, "client_secret": settings.client_secret, **payload}
     try:
@@ -182,18 +203,41 @@ async def exchange(settings: Settings, payload: dict) -> Token:
             )
     except httpx.HTTPError as exc:
         raise AuthUnavailable(f"could not reach GitHub's token endpoint: {exc}") from exc
+    if resp.status_code == 429:
+        delay = resp.headers.get("retry-after", "60")
+        raise AuthUnavailable(
+            "GitHub's token endpoint is rate limited; the cached token was kept.",
+            retry_after_seconds=max(1, int(delay)) if delay.isdigit() else 60,
+        )
     if resp.status_code >= 500:
         raise AuthUnavailable(f"GitHub's token endpoint returned HTTP {resp.status_code}")
-    data = resp.json()
+    try:
+        data = resp.json()
+    except ValueError as exc:
+        raise AuthUnavailable("GitHub's token endpoint returned invalid JSON.") from exc
+    if not isinstance(data, dict):
+        raise AuthUnavailable("GitHub's token endpoint returned an unexpected response.")
     # GitHub reports OAuth failures as HTTP 200 with an "error" field.
-    if "error" in data or "access_token" not in data:
-        raise AuthRequired(f"{data.get('error', 'no_token')}: {data.get('error_description', '')}")
+    if data.get("error") in {"temporarily_unavailable", "server_error"}:
+        raise AuthUnavailable("GitHub's token endpoint is temporarily unavailable.")
+    if data.get("error") in {"incorrect_client_credentials", "invalid_client"}:
+        raise NotConfigured(
+            "GitHub rejected GITHUB_CLIENT_ID or GITHUB_CLIENT_SECRET; "
+            "correct them in week2/.env or the env block of .mcp.json."
+        )
+    if "error" in data:
+        raise AuthRequired(f"{data['error']}: {data.get('error_description', '')}")
+    if "access_token" not in data:
+        raise AuthUnavailable("GitHub's token endpoint returned no access token.")
     if "refresh_token" not in data:
         raise AuthRequired(
             "GitHub returned a token without a refresh token. Enable 'Expire user "
             "authorization tokens' in the GitHub App settings."
         )
-    return Token.from_response(data)
+    try:
+        return Token.from_response(data)
+    except (KeyError, TypeError, ValueError) as exc:
+        raise AuthUnavailable("GitHub's token endpoint returned incomplete token data.") from exc
 
 
 _locks: weakref.WeakKeyDictionary = weakref.WeakKeyDictionary()

@@ -11,8 +11,9 @@ import math
 from typing import Annotated, Literal
 
 from fastmcp import FastMCP
-from fastmcp.exceptions import ToolError
-from pydantic import BaseModel, Field
+from fastmcp.exceptions import ToolError, ValidationError
+from fastmcp.server.middleware import Middleware
+from pydantic import BaseModel, BeforeValidator, Field, ValidationError as PydanticValidationError
 
 from github import GitHub, ToolFailure
 
@@ -21,12 +22,13 @@ Tools for reading and filing GitHub issues in repositories the user has installe
 server's GitHub App on.
 
 Workflow:
-1. list_repos gives the `full_name` ("owner/name") of every repository you can use.
+1. list_repos gives `full_name` ("owner/name") values for installed repositories,
+   up to its `limit`. Check `total_accessible` and `note` for omitted repositories.
    Every other tool takes that exact string as `repo`. When the user names a repository
    loosely ("my sandbox repo"), call list_repos first instead of assuming the current
-   directory's repository; these tools only see repos the GitHub App is installed on.
+   directory's repository.
 2. search_issues(repo=...) finds issues and returns their `number`s.
-3. get_issue(repo, number) reads one issue in full, including recent comments.
+3. get_issue(repo, number) reads its body and recent comments, with explicit truncation flags.
 4. create_issue files a new issue. It defaults to dry_run=true and only previews.
    Show the preview to the user and call again with dry_run=false only after they agree.
 
@@ -35,7 +37,61 @@ false, do not repeat the same call: follow the `hint`. auth_required always need
 user to act; tell them the command in the hint instead of retrying.
 """
 
-mcp = FastMCP("github-issues", instructions=INSTRUCTIONS, mask_error_details=True)
+
+class ArgumentErrors(Middleware):
+    """Apply the JSON error contract to validation that runs before tool functions."""
+
+    async def on_call_tool(self, context, call_next):
+        """Convert schema failures into actionable errors without echoing input values.
+
+        Args:
+            context: The MCP tool-call request.
+            call_next: The rest of the middleware and tool dispatch chain.
+
+        Returns:
+            The tool result on success.
+
+        Raises:
+            ToolError: JSON describing invalid arguments.
+        """
+        try:
+            return await call_next(context)
+        except ValidationError as exc:
+            cause = exc.__cause__
+            details = []
+            if isinstance(cause, PydanticValidationError):
+                details = [
+                    f"{'.'.join(map(str, item['loc']))}: {item['msg']}"
+                    for item in cause.errors(include_input=False, include_url=False)
+                ]
+            failure = ToolFailure(
+                "invalid_arguments", "Arguments do not match this tool's schema.",
+                retryable=False,
+                hint="Correct the indicated fields using the published schema, then call again.",
+                details=details,
+            )
+            raise ToolError(json.dumps(failure.payload())) from exc
+
+
+mcp = FastMCP(
+    "github-issues", instructions=INSTRUCTIONS, mask_error_details=True,
+    middleware=[ArgumentErrors()], strict_input_validation=True,
+)
+
+
+def _json_integer(value: object) -> object:
+    """Accept integral JSON numbers without coercing strings or booleans.
+
+    Args:
+        value: The input before strict integer validation.
+
+    Returns:
+        An integer for an integral float; otherwise the original value.
+    """
+    return int(value) if isinstance(value, float) and value.is_integer() else value
+
+
+JsonInteger = Annotated[int, BeforeValidator(_json_integer)]
 
 Repo = Annotated[
     str,
@@ -50,7 +106,7 @@ Repo = Annotated[
     ),
 ]
 IssueNumber = Annotated[
-    int,
+    JsonInteger,
     Field(ge=1, description="Issue number (the `number` field from search_issues), not its URL."),
 ]
 LabelName = Annotated[str, Field(min_length=1, max_length=50)]
@@ -170,6 +226,7 @@ class IssueSummary(BaseModel):
 class SearchResult(BaseModel):
     total_count: int = Field(description="Matches on GitHub; `items` holds at most `limit`.")
     items: list[IssueSummary]
+    incomplete_results: bool = Field(default=False, description="GitHub returned only partial search results.")
     note: str | None = None
 
 
@@ -268,23 +325,30 @@ def _repo_from_url(repository_url: str) -> str:
 @agent_errors
 async def list_repos(
     sort: Literal["pushed", "updated", "full_name"] = "pushed",
-    limit: Annotated[int, Field(ge=1, le=100)] = 30,
+    limit: Annotated[JsonInteger, Field(ge=1, le=100)] = 30,
 ) -> RepoList:
     """List the repositories this server can read and file issues in.
 
     Start here: the `full_name` of each result is the `repo` argument every other tool
-    expects. Only repositories the user installed the GitHub App on are visible, so a
-    repository missing from this list will fail in the other tools too.
+    expects. This lists repositories available through the app's installations. If
+    `total_accessible` exceeds `limit`, more exist than are shown in this response.
 
     Args:
         sort: Order of results: most recently pushed, most recently updated, or by name.
         limit: Maximum number of repositories to return.
 
     Returns:
-        The repositories, how many are accessible in total, and a note when there are none.
+        The repositories, their total count, and a note when empty or truncated.
     """
     gh = GitHub()
-    installations = (await gh.get("/user/installations", per_page=100))["installations"]
+    installations = []
+    page = 1
+    while True:
+        batch = (await gh.get("/user/installations", per_page=100, page=page))["installations"]
+        installations.extend(batch)
+        if len(batch) < 100:
+            break
+        page += 1
     raw: list[dict] = []
     for inst in installations:
         page = 1
@@ -293,7 +357,7 @@ async def list_repos(
                 f"/user/installations/{inst['id']}/repositories", per_page=100, page=page
             )
             raw.extend(data["repositories"])
-            if len(data["repositories"]) < 100 or page >= 5:
+            if len(data["repositories"]) < 100:
                 break
             page += 1
     key = {"pushed": "pushed_at", "updated": "updated_at", "full_name": "full_name"}[sort]
@@ -315,6 +379,8 @@ async def list_repos(
             "0 repositories. The user has not installed the GitHub App on any repository; "
             "ask them to install it from the app's GitHub page."
         )
+    elif len(raw) > limit:
+        note = f"Showing {len(repos)} of {len(raw)} repositories; increase limit (maximum 100) or change sort."
     return RepoList(repos=repos, total_accessible=len(raw), note=note)
 
 
@@ -326,16 +392,21 @@ async def search_issues(
         str,
         Field(
             max_length=200,
-            description="Free text matched against titles and bodies. Empty matches everything.",
+            pattern=r'^[^"\\\x00-\x1f\x7f-\x9f]*$',
+            description=(
+                "Literal phrase in titles and bodies, not GitHub search syntax. "
+                "No double quotes, backslashes or control characters. Empty matches everything."
+            ),
         ),
     ] = "",
     state: Literal["open", "closed", "all"] = "open",
     kind: Literal["issue", "pull_request"] = "issue",
     labels: Annotated[
-        list[LabelName], Field(max_length=5, description="Every label must match (AND).")
+        list[Annotated[LabelName, Field(pattern=r'^[^"\\\x00-\x1f\x7f-\x9f]*$')]],
+        Field(max_length=5, description="Every label must match (AND). No double quotes, backslashes or control characters."),
     ] = [],
     sort: Literal["updated", "created", "comments", "best_match"] = "updated",
-    limit: Annotated[int, Field(ge=1, le=50)] = 10,
+    limit: Annotated[JsonInteger, Field(ge=1, le=50)] = 10,
 ) -> SearchResult:
     """Search issues (or pull requests) in one repository, newest activity first by default.
 
@@ -344,22 +415,23 @@ async def search_issues(
 
     Args:
         repo: Repository as "owner/name", copied from a list_repos `full_name`.
-        query: Free text matched against titles and bodies. Empty matches everything.
+        query: Literal phrase in titles and bodies; empty matches everything. No search
+            syntax, double quotes, backslashes or control characters.
         state: Which issues to include by state.
         kind: Search issues or pull requests.
-        labels: Every label must match (AND).
+        labels: Every label must match (AND). No double quotes, backslashes or control characters.
         sort: Order of results; best_match uses GitHub's relevance ranking.
         limit: Maximum number of results to return.
 
     Returns:
-        The total match count, up to `limit` issue summaries, and a note when empty.
+        The total match count, issue summaries, and explicit empty or incomplete results.
     """
-    parts = [f"repo:{repo}", "is:issue" if kind == "issue" else "is:pr"]
+    parts = [f"repo:{repo}", "is:issue" if kind == "issue" else "is:pr", "in:title,body"]
     if state != "all":
         parts.append(f"state:{state}")
     parts += [f'label:"{label}"' for label in labels]
     if query.strip():
-        parts.append(query.strip())
+        parts.append(f'"{query.strip()}"')
     params = {"q": " ".join(parts), "per_page": limit}
     if sort != "best_match":
         params.update(sort=sort, order="desc")
@@ -381,7 +453,10 @@ async def search_issues(
             "call list_repos and pick the repo whose name or description matches; "
             "otherwise try state='all' or a shorter query."
         )
-    return SearchResult(total_count=data["total_count"], items=items, note=note)
+    incomplete = data.get("incomplete_results", False)
+    if incomplete:
+        note = "GitHub returned incomplete search results. Narrow the query and try again before drawing conclusions."
+    return SearchResult(total_count=data["total_count"], items=items, incomplete_results=incomplete, note=note)
 
 
 @mcp.tool(title="Read one issue with comments", annotations=READ_ONLY)
@@ -390,7 +465,7 @@ async def get_issue(
     repo: Repo,
     number: IssueNumber,
     max_comments: Annotated[
-        int, Field(ge=0, le=30, description="How many of the newest comments to include.")
+        JsonInteger, Field(ge=0, le=30, description="How many of the newest comments to include.")
     ] = 10,
 ) -> IssueDetail:
     """Read one issue: full body (clipped at 4000 chars), labels, assignees, newest comments.
@@ -416,6 +491,8 @@ async def get_issue(
             f"No issue #{number} in {repo}, or the repo is not accessible. "
             f"Find valid numbers with search_issues(repo='{repo}').",
         ) from None
+    repo = _repo_from_url(raw["repository_url"]) if raw.get("repository_url") else repo
+    number = raw["number"]
     comments: list[dict] = []
     total = raw.get("comments", 0)
     if max_comments and total:
@@ -453,7 +530,7 @@ async def get_issue(
 @agent_errors
 async def create_issue(
     repo: Repo,
-    title: Annotated[str, Field(min_length=1, max_length=256)],
+    title: Annotated[str, Field(min_length=1, max_length=256, pattern=r"\S")],
     body: Annotated[str, Field(max_length=20000, description="Markdown.")] = "",
     labels: Annotated[
         list[LabelName],
@@ -468,8 +545,8 @@ async def create_issue(
 
     `repo` comes from list_repos. The dry run checks the repo accepts issues, that every
     label exists, and lists open issues with a similar title so you can avoid duplicates.
-    Issues cannot be deleted through the API and filing one notifies watchers, so show the
-    preview to the user and only call again with dry_run=false once they confirm.
+    Filing an issue creates visible state and can notify watchers, so show the preview
+    to the user and only call again with dry_run=false once they confirm.
 
     Args:
         repo: Repository as "owner/name", copied from a list_repos `full_name`.
@@ -499,7 +576,14 @@ async def create_issue(
             hint="Pick another repository from list_repos, or ask the user to enable issues.",
         )
     if labels:
-        existing = {lbl["name"] for lbl in await gh.get(f"/repos/{repo}/labels", per_page=100)}
+        existing = set()
+        page = 1
+        while True:
+            batch = await gh.get(f"/repos/{repo}/labels", per_page=100, page=page)
+            existing.update(lbl["name"] for lbl in batch)
+            if len(batch) < 100:
+                break
+            page += 1
         unknown = [lbl for lbl in labels if lbl not in existing]
         if unknown:
             raise ToolFailure(
@@ -528,17 +612,16 @@ async def create_issue(
 
     if labels and not (repo_info.get("permissions") or {}).get("push"):
         warnings.append("You lack push access here, so GitHub will silently drop the labels.")
-    phrase = title.replace('"', " ").strip()
-    try:
-        similar = await gh.get(
-            "/search/issues", q=f'repo:{repo} is:issue state:open in:title "{phrase}"', per_page=3
-        )
-        warnings += [
-            f"Possible duplicate: #{i['number']} {i['title']!r} ({i['html_url']})"
-            for i in similar["items"]
-        ]
-    except ToolFailure as failure:
-        warnings.append(f"Duplicate check skipped ({failure.error}).")
+    phrase = " ".join(title.replace('"', " ").replace("\\", " ").split())
+    similar = await gh.get(
+        "/search/issues", q=f'repo:{repo} is:issue state:open in:title "{phrase}"', per_page=3
+    )
+    if similar.get("incomplete_results"):
+        warnings.append("Duplicate search was incomplete; check for existing issues before filing.")
+    warnings += [
+        f"Possible duplicate: #{i['number']} {i['title']!r} ({i['html_url']})"
+        for i in similar["items"]
+    ]
     return CreateIssueResult(
         dry_run=True,
         created=False,

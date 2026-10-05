@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass, field
+from email.utils import parsedate_to_datetime
+from math import ceil
 from typing import Any
 
 import httpx
@@ -89,11 +91,18 @@ def _rate_limit_wait(resp: httpx.Response) -> int | None:
     """
     if "retry-after" in resp.headers:
         value = resp.headers["retry-after"]
-        return int(value) if value.isdigit() else 60
+        if value.isdigit():
+            return max(1, int(value))
+        try:
+            return max(1, ceil(parsedate_to_datetime(value).timestamp() - time.time()))
+        except (ValueError, TypeError, OverflowError):
+            return 60
     if resp.headers.get("x-ratelimit-remaining") == "0":
         reset = int(resp.headers.get("x-ratelimit-reset", time.time() + 60))
         return max(1, reset - int(time.time()))
     if resp.status_code == 429:
+        return 60
+    if "secondary rate limit" in _github_messages(resp)[0].lower():
         return 60
     return None
 
@@ -172,6 +181,19 @@ def failure_from_response(resp: httpx.Response) -> ToolFailure:
     return ToolFailure("http_error", f"GitHub returned HTTP {status}: {message}", retryable=False)
 
 
+def _unknown_write_outcome() -> ToolFailure:
+    """Prevent automatic retries when an issue may already have been created."""
+    return ToolFailure(
+        "write_outcome_unknown",
+        "GitHub may have created the issue, but its confirmation was lost.",
+        retryable=False,
+        hint=(
+            "Do not repeat create_issue. Use search_issues with the same repo and a short "
+            "phrase from the title to check for an existing issue; ask the user before any retry."
+        ),
+    )
+
+
 class GitHub:
     """Authenticated GitHub REST client used by every tool.
 
@@ -206,7 +228,7 @@ class GitHub:
             json: JSON request body.
 
         Returns:
-            The successful (status below 400) response.
+            The successful (2xx) response.
 
         Raises:
             ToolFailure: For every failure, including auth, network and HTTP errors.
@@ -220,23 +242,40 @@ class GitHub:
                 resp = await self._send(method, path, token, params, json)
                 if resp.status_code == 401:
                     raise auth_failure("GitHub rejected the refreshed token")
+        except ToolFailure as failure:
+            if method == "POST" and failure.error == "network_error":
+                raise _unknown_write_outcome() from failure
+            raise
         except AuthRequired as exc:
             raise auth_failure(str(exc)) from exc
         except NotConfigured as exc:
             raise ToolFailure(
                 "not_configured",
-                f"The MCP server is missing its GitHub App credentials ({exc}).",
+                f"The GitHub App credentials are missing or invalid ({exc}).",
                 retryable=False,
                 hint=(
-                    "Do not retry. Ask the user to set them in week2/.env or in the env block "
-                    "of .mcp.json, then restart the MCP server."
+                    "Do not retry. Ask the user to correct GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET "
+                    "in week2/.env or the env block of .mcp.json, then restart the MCP server."
                 ),
             ) from exc
         except AuthUnavailable as exc:
             raise ToolFailure(
-                "network_error", str(exc), retryable=True, retry_after_seconds=5
+                "network_error", str(exc), retryable=True,
+                retry_after_seconds=exc.retry_after_seconds,
+                hint=f"Wait {exc.retry_after_seconds}s, then retry. No browser login is needed.",
             ) from exc
+        if 300 <= resp.status_code < 400:
+            raise ToolFailure(
+                "redirect_required", f"GitHub returned HTTP {resp.status_code} instead of the resource.",
+                retryable=False,
+                hint=(
+                    "Call list_repos to find the current repository name. "
+                    "For a write, confirm the destination with the user before trying again."
+                ),
+            )
         if resp.status_code >= 400:
+            if method == "POST" and resp.status_code >= 500:
+                raise _unknown_write_outcome()
             raise failure_from_response(resp)
         return resp
 
@@ -272,7 +311,9 @@ class GitHub:
             ToolFailure: When GitHub times out or cannot be reached.
         """
         try:
-            async with httpx.AsyncClient(base_url=self.settings.api_url, timeout=20) as http:
+            async with httpx.AsyncClient(
+                base_url=self.settings.api_url, timeout=20, follow_redirects=method in {"GET", "HEAD"},
+            ) as http:
                 return await http.request(
                     method,
                     path,

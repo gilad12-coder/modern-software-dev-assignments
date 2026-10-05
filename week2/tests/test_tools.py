@@ -79,7 +79,7 @@ async def test_search_builds_query_and_drops_raw_fields(fake, server_env):
         {"repo": "alice/demo", "query": "crash", "labels": ["good first issue"], "state": "all"},
     )
     q = fake.calls("GET", "/search/issues")[0]["query"]["q"]
-    assert q == 'repo:alice/demo is:issue label:"good first issue" crash'
+    assert q == 'repo:alice/demo is:issue in:title,body label:"good first issue" "crash"'
     item = result.structured_content["items"][0]
     assert item["number"] == 7 and item["repo"] == "alice/demo" and item["labels"] == ["bug"]
     assert "body" not in item and "reactions" not in item and "node_id" not in item
@@ -382,16 +382,17 @@ async def test_concurrent_calls_refresh_only_once(fake, server_env, tmp_path):
     assert fake.refresh_calls == 1
 
 
-@pytest.mark.parametrize("retry_after", ["7", "Wed, 21 Oct 2026 07:28:00 GMT"])
-async def test_secondary_rate_limit_retry_after(fake, server_env, retry_after):
-    """A secondary rate limit honors Retry-After in both formats.
+@pytest.mark.parametrize("retry_after,expected_wait", [("7", 7), ("invalid-date", 60)])
+async def test_secondary_rate_limit_retry_after(fake, server_env, retry_after, expected_wait):
+    """Honor a numeric Retry-After and fall back safely for a malformed date.
 
     Args:
         fake: The fake GitHub, to set routes and inspect requests.
         server_env: Environment pointing the server at the fake.
-        retry_after: The Retry-After header value: seconds or an HTTP date.
+        retry_after: The Retry-After header value.
+        expected_wait: The requested delay or the one-minute fallback.
     """
     fake.route("GET", "/search/issues", {"message": "secondary rate limit"}, 403,
                {"retry-after": retry_after})
     err = error_of(await call("search_issues", {"repo": "alice/demo"}))
-    assert err["error"] == "rate_limited" and err["retry_after_seconds"] in (7, 60)
+    assert err["error"] == "rate_limited" and err["retry_after_seconds"] == expected_wait

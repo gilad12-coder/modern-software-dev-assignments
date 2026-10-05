@@ -101,3 +101,65 @@ def test_login_rejects_forged_state(fake, server_env, tmp_path, monkeypatch):
     with pytest.raises(SystemExit, match="state mismatch"):
         login.main()
     assert fake.calls("POST", "/login/oauth/access_token") == []
+
+
+def test_callback_is_listening_before_browser_opens(fake, server_env, monkeypatch):
+    """Let an already-authorized browser redirect as soon as it opens.
+
+    Args:
+        fake: Local GitHub API and OAuth endpoint.
+        server_env: Isolated credentials and endpoints.
+        monkeypatch: Replaces the browser and callback port.
+    """
+    port = free_port()
+    monkeypatch.setenv("GH_MCP_CALLBACK_PORT", str(port))
+    fake.route("GET", "/user", {"login": "alice"})
+    browser = fake_browser(fake)
+
+    def open_when_ready(url):
+        """Check the listener before simulating the browser's redirect.
+
+        Args:
+            url: Authorization URL.
+        """
+        with socket.create_connection(("127.0.0.1", port), timeout=1):
+            pass
+        browser(url)
+
+    monkeypatch.setattr(login.webbrowser, "open", open_when_ready)
+    login.main()
+    assert len(fake.calls("POST", "/login/oauth/access_token")) == 1
+
+
+def test_login_rejects_callback_without_code(fake, server_env, monkeypatch):
+    """Reject an empty callback before trying to exchange a code.
+
+    Args:
+        fake: Local GitHub API and OAuth endpoint.
+        server_env: Isolated credentials and endpoints.
+        monkeypatch: Replaces the browser and callback port.
+    """
+    fake.issued_code = ""
+    monkeypatch.setenv("GH_MCP_CALLBACK_PORT", str(free_port()))
+    monkeypatch.setattr(login.webbrowser, "open", fake_browser(fake))
+    with pytest.raises(SystemExit, match="missing authorization code"):
+        login.main()
+    assert fake.calls("POST", "/login/oauth/access_token") == []
+
+
+def test_login_reports_rejected_app_credentials(fake, server_env, tmp_path, monkeypatch):
+    """Explain invalid app credentials without a traceback or cache replacement.
+
+    Args:
+        fake: Local fake GitHub.
+        server_env: Isolated credentials and endpoints.
+        tmp_path: Token-cache directory.
+        monkeypatch: Replaces the browser and callback port.
+    """
+    before = (tmp_path / "token.json").read_bytes()
+    fake.route("POST", "/login/oauth/access_token", {"error": "incorrect_client_credentials"})
+    monkeypatch.setenv("GH_MCP_CALLBACK_PORT", str(free_port()))
+    monkeypatch.setattr(login.webbrowser, "open", fake_browser(fake))
+    with pytest.raises(SystemExit, match="GITHUB_CLIENT_SECRET"):
+        login.main()
+    assert (tmp_path / "token.json").read_bytes() == before
