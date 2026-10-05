@@ -16,16 +16,16 @@ Run from the repo root.
 | `list_repos` | Lists accessible repositories | Read | `full_name` feeds every other tool's `repo` |
 | `search_issues` | Searches a repository; returns issue summaries | Read | Takes `repo`; returns `number` for `get_issue` |
 | `get_issue` | Reads an issue and recent comments | Read | Takes `repo` and `number` from search |
-| `create_issue` | Previews by default; creates with `dry_run=false` | Write | Takes `repo`; searches for duplicates before creation |
+| `create_issue` | Previews by default; creates with `dry_run=false` | Write | Takes `repo` from `list_repos`; preview checks for duplicates |
 
 ## Part II: Agent Ergonomics
 
 | Decision | Where | Why |
 |---|---|---|
 | Schema-level constraint | `server.py:96`, `server.py:389`, `server.py:531` | Repository pattern, state/sort enums, bounded lists, and nonblank titles reject invalid arguments before HTTP. Literal search phrases cannot inject extra repository qualifiers. |
-| Output shaping (fields kept vs. dropped) | `server.py:197`, `server.py:266`, `server.py:120` | Keep `repo`, issue numbers, titles, state, labels, counts, and one URL; drop raw user objects and unused API fields. Clip bodies/comments with truncation flags; flag incomplete results to avoid false conclusions. |
+| Output shaping (fields kept vs. dropped) | `server.py:197`, `server.py:266`, `server.py:120` | Keep `repo`, issue numbers, titles, state, labels, counts, and one URL; drop raw user objects and unused API fields to reduce token use. Clip bodies/comments with truncation flags; flag incomplete results so the agent knows when content is missing and avoids false conclusions. |
 | Structured errors (retry vs. don't-retry) | `server.py:41`, `server.py:136`, `github.py:131`, `github.py:184` | `isError=true` returns JSON with `error`, `retryable`, and a hint or wait time. Invalid arguments or credentials need correction; temporary read failures can be retried. `write_outcome_unknown` means creation may have succeeded, so the agent must search and ask before trying again. |
-| Docstring that chains tools together | `server.py:20`, `server.py:464` | Instructions pass `list_repos.full_name` to `repo`, then the search result's `number` to `get_issue`, and prohibit guessing the repo from the checkout. |
+| Docstring that chains tools together | `server.py:20`, `server.py:464` | Instructions pass `list_repos.full_name` to `repo`, then the search result's `number` to `get_issue`. Using returned identifiers prevents guesses about which repository or issue the user means. |
 | Brake on the write tool | `server.py:531` | `dry_run=true` validates and previews without a POST; `next_step` asks for confirmation before `false`. Readers have `readOnlyHint=true`; creation is non-idempotent. The server relies on the client to obtain confirmation. |
 
 **One thing you changed after watching the agent misuse a tool:**
@@ -64,32 +64,37 @@ Run from the repo root.
 
 **End-to-end transcript**: the prompt, the tools that fired with their arguments, the result:
 
-[Transcript 04b](transcripts/04b-guessed-repo-after-fix.txt) includes the full prompt, chained calls, and final answer. The excerpt below shows preview and approved creation from [transcript 01](transcripts/01-chain-and-file.txt).
+[Transcript 04b](transcripts/04b-guessed-repo-after-fix.txt) records this three-tool chain. The prompt and arguments below are copied from the recording; tool results are summarized.
 
 ```text
-USER: In my issues-mcp-sandbox repo there's an open bug about the CSV export. Find it,
-read it including the comments, and tell me the likely root cause in two sentences. Then
-draft a follow-up issue asking for a regression test for that bug, labeled bug. Show me
-the preview; don't file it yet.
+USER: Which of my sandbox issues have the most discussion? Show the top one's comments.
 
 list_repos({})
-  -> {"repos":[{"full_name":"gilad12-coder/issues-mcp-sandbox",...},...],"total_accessible":9}
-search_issues({"repo":"gilad12-coder/issues-mcp-sandbox","query":"CSV"})
-  -> {"total_count":2,"items":[{"number":1,"title":"CSV export crashes on rows with empty dates",...},...]}
-get_issue({"repo":"gilad12-coder/issues-mcp-sandbox","number":1})
-  -> {"body":"Exporting the weekly report to CSV throws `ValueError: time data '' does not match format` when any row has an empty `due_date`...",
-      "recent_comments":[...,{"body":"Looks like `parse_date` in export.py calls strptime without checking for empty strings.",...}],...}
-create_issue({"repo":"gilad12-coder/issues-mcp-sandbox",
-  "title":"Add regression test for CSV export with empty optional date fields",
-  "body":"Follow-up to #1. ...","labels":["bug"],"dry_run":true})
-  -> {"created":false,"preview":{...},"next_step":"Nothing was created. Show this preview (and any warnings) to the user. If they confirm, call create_issue again with the same arguments and dry_run=false.",...}
-
-USER: Looks good, file it.
-
-create_issue({...same arguments...,"dry_run":false})
-  -> {"created":true,"issue":{"number":5,"labels":["bug"],...},...}
-ASSISTANT: I filed it as issue #5, labeled `bug`: https://github.com/gilad12-coder/issues-mcp-sandbox/issues/5
+  -> Found gilad12-coder/issues-mcp-sandbox among 9 accessible repositories.
+search_issues({"repo": "gilad12-coder/issues-mcp-sandbox", "state": "all", "sort": "comments", "limit": 10})
+  -> 5 issues; #1 had 2 comments, and the other four had none.
+get_issue({"repo": "gilad12-coder/issues-mcp-sandbox", "number": 1, "max_comments": 10})
+  -> Returned issue #1's body and both comments, with no comments omitted.
 ```
+
+**Result:** The agent answered with the most discussed issue and its comments:
+
+> Your sandbox repo has **5 issues total**. The most discussed is **#1 "CSV export crashes on rows with empty dates"** with 2 comments:
+>
+> **Issue #1** (open, labeled `bug`)
+> > Exporting the weekly report to CSV throws `ValueError: time data '' does not match format` when any row has an empty `due_date`. Reproduce: create a task without a due date, then run `export --csv`.
+>
+> **Comments:**
+>
+> 1. **gilad12-coder** (2026-10-02 19:46:32)
+>    > Same here. Also happens when `completed_at` is empty, so it's any optional date column.
+>
+> 2. **gilad12-coder** (2026-10-02 19:46:33)
+>    > Looks like `parse_date` in export.py calls strptime without checking for empty strings.
+>
+> The other 4 issues have no comments yet.
+
+[Transcript 01](transcripts/01-chain-and-file.txt) also records a write: the agent previewed a regression-test issue, then created issue #5 only after I said, “Looks good, file it.”
 
 **A failure, handled**: what you provoked, what the agent saw, what it did next:
 
@@ -123,8 +128,16 @@ The agent made only that one MCP call and waited for me to log in. It also ident
 
 **Protocol-level test**: what it covers and how to run it:
 
+**Coverage:** `tests/test_stdio.py` launches `server.py` as a subprocess and communicates over MCP stdio. Its three tests check:
+
+- **Initialization and tool contracts:** workflow instructions, discovery of all four tools, read/write annotations, the default `dry_run=true`, and input/output schema fields.
+- **Chained reads and errors:** `list_repos → search_issues → get_issue`, passing the returned `full_name` and issue `number` between calls; a missing issue returns `isError=true` with `error="not_found"`.
+- **Write safety:** preview makes no issue-creation POST; repeating the call with `dry_run=false` creates an issue with exactly one POST containing the expected title, body, and labels.
+
+The tests use fake GitHub/OAuth endpoints on localhost, so they need no real GitHub credentials or API calls.
+
+**Run from the repo root:**
+
 ```sh
 uv run --directory week2 pytest tests/test_stdio.py
 ```
-
-`tests/test_stdio.py` starts the real stdio server and checks initialization, schemas and annotations, chained read calls, preview without writing, explicit creation, and structured `not_found` errors. A fake GitHub API runs on localhost.
