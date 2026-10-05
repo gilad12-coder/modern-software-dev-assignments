@@ -9,7 +9,7 @@
 ```sh
 uv run --directory week2 python server.py
 ```
-Run from the repo root; transport is stdio. Requires Python 3.11+, `uv`, and Unix (tested on macOS). First run `uv run --directory week2 python setup_app.py`, install the app on the sandbox using its printed link, then run `uv run --directory week2 python login.py`.
+Run from the repo root.
 
 | Tool | What it does | Read/Write | Composes with |
 |---|---|---|---|
@@ -29,11 +29,17 @@ Run from the repo root; transport is stdio. Requires Python 3.11+, `uv`, and Uni
 | Brake on the write tool | `server.py:531` | `dry_run=true` validates and previews without a POST; `next_step` asks for confirmation before `false`. Readers have `readOnlyHint=true`; creation is non-idempotent. The server relies on the client to obtain confirmation. |
 
 **One thing you changed after watching the agent misuse a tool:**
-> For “Which of my sandbox issues have the most discussion? Show the top one's comments,” the agent guessed the coursework repo and reported no issues ([before](transcripts/04a-guessed-repo-before-fix.txt)). I added discovery instructions to `repo` and an empty-search hint (`server.py:96`, `server.py:389`). With the same prompt, the agent then called `list_repos`, searched the sandbox, and called `get_issue` for #1 ([after](transcripts/04b-guessed-repo-after-fix.txt)).
+> I asked, “Which of my sandbox issues have the most discussion? Show the top one's comments.” In the [before run](transcripts/04a-guessed-repo-before-fix.txt), the agent assumed I meant `gilad12-coder/modern-software-dev-assignments`, the coursework repository. It first ran `gh-axi issue list` outside the MCP server, then called `search_issues` twice against that same repo: once with `query="sandbox"`, then with an empty query. Both searches included open and closed issues and returned zero matches. Without calling `list_repos`, it concluded that my repo had no issues and asked whether I meant another repository.
+>
+> I changed the `repo` parameter description to tell the agent to call `list_repos` and match an informal name against each repository's `full_name` and `description`, rather than guessing from the current directory. I also added an empty-search hint directing it back to repository discovery when the user had not supplied an exact name (`server.py:96`, `server.py:389`).
+>
+> With the same prompt in the [after run](transcripts/04b-guessed-repo-after-fix.txt), the agent started with `list_repos({})` and found `gilad12-coder/issues-mcp-sandbox`. It searched that repo with `state="all"` and `sort="comments"`, found five issues, then called `get_issue` for #1 with `max_comments=10`. It correctly identified the CSV export bug as the most discussed issue, showed its two comments, and noted that the other four issues had none.
 
 ## Part III: OAuth
 
 **Flow**: how a token is obtained, cached, and refreshed:
+> Requires Python 3.11+, `uv`, and Unix (tested on macOS). For one-time setup, run `uv run --directory week2 python setup_app.py`, install the app on the sandbox using its printed link, then run `uv run --directory week2 python login.py`.
+>
 > `login.py` obtains an authorization code through browser login with PKCE and state validation, then exchanges it for tokens. Tokens are cached atomically with mode 0600 at `~/.config/github-issues-mcp/token.json`. The server refreshes near expiry without prompting, allows only one refresh at a time, and saves the new token pair. A premature 401 triggers one refresh and retry (`login.py:144`, `oauth.py:164`, `oauth.py:270`, `github.py:214`).
 
 **Scopes requested**, and why each is necessary:
