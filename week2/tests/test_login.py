@@ -8,9 +8,10 @@ import threading
 import urllib.parse
 import urllib.request
 
+import login
 import pytest
 
-import login
+from . import constants as T
 
 
 def free_port() -> int:
@@ -20,7 +21,7 @@ def free_port() -> int:
         The port number.
     """
     with socket.socket() as s:
-        s.bind(("127.0.0.1", 0))
+        s.bind((T.LOOPBACK_HOST, T.AUTO_PORT))
         return s.getsockname()[1]
 
 
@@ -42,13 +43,13 @@ def fake_browser(fake, state_override=None):
             url: The authorize URL login.py tried to open.
         """
         params = dict(urllib.parse.parse_qsl(urllib.parse.urlparse(url).query))
-        assert params["code_challenge_method"] == "S256"
-        fake.code_challenge = params["code_challenge"]
+        assert params[T.KEY_CODE_CHALLENGE_METHOD] == T.PKCE_METHOD
+        fake.code_challenge = params[T.KEY_CODE_CHALLENGE]
         back = urllib.parse.urlencode(
-            {"code": fake.issued_code, "state": state_override or params["state"]}
+            {T.KEY_CODE: fake.issued_code, T.KEY_STATE: state_override or params[T.KEY_STATE]}
         )
-        target = f"{params['redirect_uri']}?{back}"
-        threading.Timer(0.2, lambda: _get(target)).start()
+        target = f"{params[T.KEY_REDIRECT_URI]}?{back}"
+        threading.Timer(T.BROWSER_REDIRECT_DELAY, lambda: _get(target)).start()
 
     return open_url
 
@@ -60,7 +61,7 @@ def _get(url: str) -> None:
         url: URL to request.
     """
     try:
-        urllib.request.urlopen(url, timeout=5).read()
+        urllib.request.urlopen(url, timeout=T.HTTP_TIMEOUT).read()
     except Exception:
         pass
 
@@ -74,17 +75,20 @@ def test_login_exchanges_code_and_caches_token(fake, server_env, tmp_path, monke
         tmp_path: Directory holding the token file.
         monkeypatch: Used to replace the browser and set the callback port.
     """
-    (tmp_path / "token.json").unlink()
-    monkeypatch.setenv("GH_MCP_CALLBACK_PORT", str(free_port()))
-    fake.route("GET", "/user", {"login": "alice"})
-    fake.valid_tokens = {"ghu_new1"}
+    (tmp_path / T.TOKEN_FILENAME).unlink()
+    monkeypatch.setenv(T.GH_MCP_CALLBACK_PORT, str(free_port()))
+    fake.route(T.HTTP_GET, T.USER_PATH, {T.KEY_LOGIN: T.OWNER})
+    fake.valid_tokens = {T.ROTATED_ACCESS_TOKEN}
     monkeypatch.setattr(login.webbrowser, "open", fake_browser(fake))
     login.main()
-    cached = json.loads((tmp_path / "token.json").read_text())
-    assert cached["access_token"] == "ghu_new1" and cached["refresh_token"] == "ghr_new1"
-    assert oct((tmp_path / "token.json").stat().st_mode)[-3:] == "600"
-    exchange = fake.calls("POST", "/login/oauth/access_token")[0]["form"]
-    assert exchange["client_secret"] == "test-secret" and exchange["code_verifier"]
+    cached = json.loads((tmp_path / T.TOKEN_FILENAME).read_text())
+    assert (
+        cached[T.KEY_ACCESS_TOKEN] == T.ROTATED_ACCESS_TOKEN
+        and cached[T.KEY_REFRESH_TOKEN] == T.ROTATED_REFRESH_TOKEN
+    )
+    assert (tmp_path / T.TOKEN_FILENAME).stat().st_mode & T.FILE_MODE_MASK == T.PRIVATE_FILE_MODE
+    exchange = fake.calls(T.HTTP_POST, T.TOKEN_PATH)[0][T.KEY_FORM]
+    assert exchange[T.KEY_CLIENT_SECRET] == T.CLIENT_SECRET and exchange[T.KEY_CODE_VERIFIER]
 
 
 def test_login_rejects_forged_state(fake, server_env, tmp_path, monkeypatch):
@@ -96,11 +100,11 @@ def test_login_rejects_forged_state(fake, server_env, tmp_path, monkeypatch):
         tmp_path: Directory holding the token file.
         monkeypatch: Used to replace the browser and set the callback port.
     """
-    monkeypatch.setenv("GH_MCP_CALLBACK_PORT", str(free_port()))
-    monkeypatch.setattr(login.webbrowser, "open", fake_browser(fake, state_override="forged"))
-    with pytest.raises(SystemExit, match="state mismatch"):
+    monkeypatch.setenv(T.GH_MCP_CALLBACK_PORT, str(free_port()))
+    monkeypatch.setattr(login.webbrowser, "open", fake_browser(fake, state_override=T.FORGED_STATE))
+    with pytest.raises(SystemExit, match=T.STATE_MISMATCH_MESSAGE):
         login.main()
-    assert fake.calls("POST", "/login/oauth/access_token") == []
+    assert fake.calls(T.HTTP_POST, T.TOKEN_PATH) == []
 
 
 def test_callback_is_listening_before_browser_opens(fake, server_env, monkeypatch):
@@ -112,8 +116,8 @@ def test_callback_is_listening_before_browser_opens(fake, server_env, monkeypatc
         monkeypatch: Replaces the browser and callback port.
     """
     port = free_port()
-    monkeypatch.setenv("GH_MCP_CALLBACK_PORT", str(port))
-    fake.route("GET", "/user", {"login": "alice"})
+    monkeypatch.setenv(T.GH_MCP_CALLBACK_PORT, str(port))
+    fake.route(T.HTTP_GET, T.USER_PATH, {T.KEY_LOGIN: T.OWNER})
     browser = fake_browser(fake)
 
     def open_when_ready(url):
@@ -122,13 +126,13 @@ def test_callback_is_listening_before_browser_opens(fake, server_env, monkeypatc
         Args:
             url: Authorization URL.
         """
-        with socket.create_connection(("127.0.0.1", port), timeout=1):
+        with socket.create_connection((T.LOOPBACK_HOST, port), timeout=T.LISTENER_TIMEOUT):
             pass
         browser(url)
 
     monkeypatch.setattr(login.webbrowser, "open", open_when_ready)
     login.main()
-    assert len(fake.calls("POST", "/login/oauth/access_token")) == 1
+    assert len(fake.calls(T.HTTP_POST, T.TOKEN_PATH)) == 1
 
 
 def test_login_rejects_callback_without_code(fake, server_env, monkeypatch):
@@ -140,11 +144,11 @@ def test_login_rejects_callback_without_code(fake, server_env, monkeypatch):
         monkeypatch: Replaces the browser and callback port.
     """
     fake.issued_code = ""
-    monkeypatch.setenv("GH_MCP_CALLBACK_PORT", str(free_port()))
+    monkeypatch.setenv(T.GH_MCP_CALLBACK_PORT, str(free_port()))
     monkeypatch.setattr(login.webbrowser, "open", fake_browser(fake))
-    with pytest.raises(SystemExit, match="missing authorization code"):
+    with pytest.raises(SystemExit, match=T.MISSING_CODE_MESSAGE):
         login.main()
-    assert fake.calls("POST", "/login/oauth/access_token") == []
+    assert fake.calls(T.HTTP_POST, T.TOKEN_PATH) == []
 
 
 def test_login_reports_rejected_app_credentials(fake, server_env, tmp_path, monkeypatch):
@@ -156,10 +160,10 @@ def test_login_reports_rejected_app_credentials(fake, server_env, tmp_path, monk
         tmp_path: Token-cache directory.
         monkeypatch: Replaces the browser and callback port.
     """
-    before = (tmp_path / "token.json").read_bytes()
-    fake.route("POST", "/login/oauth/access_token", {"error": "incorrect_client_credentials"})
-    monkeypatch.setenv("GH_MCP_CALLBACK_PORT", str(free_port()))
+    before = (tmp_path / T.TOKEN_FILENAME).read_bytes()
+    fake.route(T.HTTP_POST, T.TOKEN_PATH, {T.KEY_ERROR: T.OAUTH_BAD_CREDENTIALS})
+    monkeypatch.setenv(T.GH_MCP_CALLBACK_PORT, str(free_port()))
     monkeypatch.setattr(login.webbrowser, "open", fake_browser(fake))
-    with pytest.raises(SystemExit, match="GITHUB_CLIENT_SECRET"):
+    with pytest.raises(SystemExit, match=T.GITHUB_CLIENT_SECRET):
         login.main()
-    assert (tmp_path / "token.json").read_bytes() == before
+    assert (tmp_path / T.TOKEN_FILENAME).read_bytes() == before

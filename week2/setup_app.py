@@ -14,14 +14,13 @@ import sys
 import threading
 import urllib.parse
 import webbrowser
-from pathlib import Path
+from http import HTTPStatus
 
+import config
+import constants as C
 import httpx
 from dotenv import dotenv_values, set_key
-
-from oauth import Settings
-
-ENV_FILE = Path(__file__).with_name(".env")
+from models import Settings
 
 
 def manifest(settings: Settings, name: str) -> dict:
@@ -35,27 +34,27 @@ def manifest(settings: Settings, name: str) -> dict:
         The manifest GitHub's app-creation form expects.
     """
     return {
-        "name": name,
-        "url": "https://github.com/mihail911/modern-software-dev-assignments",
-        "redirect_url": f"http://127.0.0.1:{settings.callback_port}/created",
-        "callback_urls": [settings.redirect_uri],
-        "public": False,
-        "hook_attributes": {"url": "https://example.invalid/unused", "active": False},
+        C.KEY_NAME: name,
+        C.KEY_URL: config.APP_HOMEPAGE,
+        C.KEY_REDIRECT_URL: f"http://{config.LOOPBACK_HOST}:{settings.callback_port}{C.APP_CALLBACK_PATH}",
+        C.KEY_CALLBACK_URLS: [settings.redirect_uri],
+        C.KEY_PUBLIC: False,
+        C.KEY_HOOK_ATTRIBUTES: C.DISABLED_WEBHOOK.copy(),
         # The whole permission surface of this server. Nothing else is requestable.
-        "default_permissions": {"issues": "write", "metadata": "read"},
-        "default_events": [],
+        C.KEY_DEFAULT_PERMISSIONS: C.APP_PERMISSIONS.copy(),
+        C.KEY_DEFAULT_EVENTS: [],
     }
 
 
 def main() -> None:
     """Create the app through the browser and save its client credentials to ``.env``."""
-    if ENV_FILE.exists() and dotenv_values(ENV_FILE).get("GITHUB_CLIENT_SECRET"):
-        sys.exit(f"{ENV_FILE} already has credentials; delete it to create a new app.")
-    settings = Settings.from_env()
-    name = f"issues-mcp-{secrets.token_hex(3)}"
-    state = secrets.token_urlsafe(16)
+    if config.ENV_FILE.exists() and dotenv_values(config.ENV_FILE).get(C.GITHUB_CLIENT_SECRET):
+        sys.exit(f"{config.ENV_FILE} already has credentials; delete it to create a new app.")
+    settings = config.load_settings()
+    name = f"{config.APP_NAME_PREFIX}{secrets.token_hex(C.APP_NAME_RANDOM_BYTES)}"
+    state = secrets.token_urlsafe(C.APP_STATE_BYTES)
     form = (
-        '<form id="f" method="post" action="https://github.com/settings/apps/new?state='
+        f'<form id="f" method="post" action="{settings.oauth_url}{C.APP_CREATE_PATH}?state='
         f'{state}"><input type="hidden" name="manifest" value="'
         f'{html.escape(json.dumps(manifest(settings, name)))}"></form>'
         "<script>document.getElementById('f').submit()</script>"
@@ -71,15 +70,15 @@ def main() -> None:
             params = dict(urllib.parse.parse_qsl(url.query))
             if url.path == "/":
                 body = form
-            elif url.path == "/created" and params.get("state") == state:
-                result["code"] = params["code"]
-                body = "App created. Return to the terminal."
+            elif url.path == C.APP_CALLBACK_PATH and params.get(C.KEY_STATE) == state:
+                result[C.KEY_CODE] = params[C.KEY_CODE]
+                body = C.APP_CREATED_MESSAGE
                 threading.Thread(target=self.server.shutdown, daemon=True).start()
             else:
-                self.send_error(400)
+                self.send_error(HTTPStatus.BAD_REQUEST)
                 return
-            self.send_response(200)
-            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_response(HTTPStatus.OK)
+            self.send_header(C.HEADER_CONTENT_TYPE, C.HTML_MEDIA_TYPE)
             self.end_headers()
             self.wfile.write(body.encode())
 
@@ -91,30 +90,32 @@ def main() -> None:
             """
             pass
 
-    server = http.server.HTTPServer(("127.0.0.1", settings.callback_port), Handler)
-    start = f"http://127.0.0.1:{settings.callback_port}/"
+    server = http.server.HTTPServer((config.LOOPBACK_HOST, settings.callback_port), Handler)
+    start = f"http://{config.LOOPBACK_HOST}:{settings.callback_port}/"
     print(f"Opening {start} -> GitHub. Click 'Create GitHub App' there.")
     webbrowser.open(start)
     server.serve_forever()
     server.server_close()
 
     resp = httpx.post(
-        f"https://api.github.com/app-manifests/{result['code']}/conversions",
-        headers={"Accept": "application/vnd.github+json"},
-        timeout=20,
+        settings.api_url + C.MANIFEST_CONVERSION_PATH.format(code=result[C.KEY_CODE]),
+        headers={C.HEADER_ACCEPT: C.GITHUB_MEDIA_TYPE},
+        timeout=config.API_TIMEOUT_SECONDS,
     )
     resp.raise_for_status()
     app = resp.json()
     # The response also carries the app's private key and webhook secret. This server
     # never acts as the app itself, so they are deliberately dropped, not stored.
     # Restrict access before writing secrets; keep optional settings in copied templates.
-    ENV_FILE.touch(mode=0o600, exist_ok=True)
-    ENV_FILE.chmod(0o600)
-    set_key(ENV_FILE, "GITHUB_CLIENT_ID", app["client_id"])
-    set_key(ENV_FILE, "GITHUB_CLIENT_SECRET", app["client_secret"])
-    print(f"Saved client ID and secret to {ENV_FILE} (gitignored, mode 0600).")
-    print(f"Next: install the app on the repos it may touch: {app['html_url']}/installations/new")
-    print("Then: uv run --directory week2 python login.py")
+    config.ENV_FILE.touch(mode=C.PRIVATE_FILE_MODE, exist_ok=True)
+    config.ENV_FILE.chmod(C.PRIVATE_FILE_MODE)
+    set_key(config.ENV_FILE, C.GITHUB_CLIENT_ID, app[C.KEY_CLIENT_ID])
+    set_key(config.ENV_FILE, C.GITHUB_CLIENT_SECRET, app[C.KEY_CLIENT_SECRET])
+    print(f"Saved client ID and secret to {config.ENV_FILE} (gitignored, mode 0600).")
+    print(
+        f"Next: install the app on the repos it may touch: {app[C.KEY_HTML_URL]}{C.APP_INSTALL_PATH}"
+    )
+    print(f"Then: {C.LOGIN_COMMAND}")
 
 
 if __name__ == "__main__":
