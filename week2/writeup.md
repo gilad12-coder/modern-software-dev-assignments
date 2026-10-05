@@ -93,16 +93,33 @@ ASSISTANT: I filed it as issue #5, labeled `bug`: https://github.com/gilad12-cod
 
 **A failure, handled**: what you provoked, what the agent saw, what it did next:
 
-I temporarily replaced cached tokens with invalid values, then restored them; no real authorization was revoked. In [transcript 02](transcripts/02-revoked-token.txt):
+I backed up the token cache and replaced the cached access and refresh tokens with invalid values to simulate unusable authorization; I did not revoke the actual GitHub authorization. In [transcript 02](transcripts/02-revoked-token.txt), I then asked for the sandbox's open bugs. The agent started with `list_repos`, but GitHub rejected the invalid refresh token, so the server could not obtain a usable access token. It returned this structured error:
 
 ```text
 USER: What are the open bugs in my issues-mcp-sandbox repo?
-list_repos({"limit":100})
-  -> isError=true; error="auth_required"; retryable=false
-  -> hint="Do not retry. Ask the user to run `uv run --directory week2 python login.py` in a terminal, then call the tool again."
+TOOL CALL: list_repos({"limit":100})
+TOOL RESULT (isError=true):
+{
+  "error": "auth_required",
+  "message": "GitHub authorization is missing or no longer valid (bad_refresh_token: The refresh token passed is incorrect or expired.).",
+  "retryable": false,
+  "hint": "Do not retry. Ask the user to run `uv run --directory week2 python login.py` in a terminal, then call the tool again."
+}
 ```
 
-The agent made one call, did not retry, and relayed the login command.
+`retryable: false` told the agent that repeating the call with the same credentials would not fix the problem. The `hint` gave it a specific recovery step to pass to me. It responded:
+
+```text
+I can't list your issues yet because the GitHub authorization for the
+`github-issues` MCP server has expired (`bad_refresh_token`). This needs you to
+act. In a terminal, run:
+
+uv run --directory week2 python login.py
+
+Tell me when it's done and I'll look up the open bugs in `issues-mcp-sandbox`.
+```
+
+The agent made only that one MCP call and waited for me to log in. It also identified that the startup `gh-axi` output showing zero issues belonged to the coursework repository, so it could not answer the sandbox question. The recording ends at this request for reauthorization; it does not show a completed login or resumed search. I restored the backed-up tokens afterward.
 
 **Protocol-level test**: what it covers and how to run it:
 
