@@ -38,8 +38,6 @@ Run from the repo root.
 ## Part III: OAuth
 
 **Flow**: how a token is obtained, cached, and refreshed:
-> Requires Python 3.11+, `uv`, and Unix (tested on macOS). For one-time setup, run `uv run --directory week2 python setup_app.py`, install the app on the sandbox using its printed link, then run `uv run --directory week2 python login.py`.
->
 > `login.py` obtains an authorization code through browser login with PKCE and state validation, then exchanges it for tokens. Tokens are cached atomically with mode 0600 at `~/.config/github-issues-mcp/token.json`. The server refreshes near expiry without prompting, allows only one refresh at a time, and saves the new token pair. A premature 401 triggers one refresh and retry (`login.py:144`, `oauth.py:164`, `oauth.py:270`, `github.py:214`).
 
 **Scopes requested**, and why each is necessary:
@@ -49,7 +47,11 @@ Run from the repo root.
 > `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` come from env or `week2/.env`. Gitignored: `.env`, real root/week2 `.mcp.json`, `token.json`, and `*.token.json`. Tokens are cached outside the repo. Committed examples contain no credentials; other private repo names in transcripts are redacted.
 
 **Token dies mid-session**: what the agent sees:
-> Missing or invalid refresh credentials or a second 401 returns `auth_required`, `retryable: false`, and a hint to run `uv run --directory week2 python login.py`. Rejected app credentials return `not_configured`, with instructions to correct them and restart. Tools never open a browser. Temporary token-endpoint failures return retryable `network_error` with a wait and preserve the cache.
+> A missing token cache, expired or invalid refresh credentials, or another 401 after refreshing returns `auth_required` with `retryable: false`. The agent should stop retrying and ask the user to run `uv run --directory week2 python login.py` in a terminal from the repo root. The user completes GitHub authorization in the browser; once the command saves the new tokens, the agent can repeat the original tool call. The tool itself never opens a browser.
+>
+> Missing or rejected app credentials return `not_configured`, also with `retryable: false`. The hint asks the user to correct `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` in `week2/.env` or the `env` block of `.mcp.json`. These must be matching credentials for the same GitHub App. The user then restarts the MCP server so it loads the corrected values, and the agent retries the tool. If the next error is `auth_required`, the user also completes the login step above; repeatedly calling the tool cannot repair either problem.
+>
+> Temporary token-endpoint failures return `network_error` with `retryable: true`, `retry_after_seconds`, and a hint to wait that long before retrying. The cached tokens are preserved, so the user does not need to delete the cache or log in again for this error.
 
 ## Part IV: Integration
 
@@ -62,7 +64,7 @@ Run from the repo root.
 
 **End-to-end transcript**: the prompt, the tools that fired with their arguments, the result:
 
-[Transcript 04b](transcripts/04b-guessed-repo-after-fix.txt) includes the full prompt, chained calls, and final answer. The excerpt below shows preview and approved creation from [transcript 01](transcripts/01-chain-and-file.txt); ellipses omit fields or body text. Saved demos predate the added output flags.
+[Transcript 04b](transcripts/04b-guessed-repo-after-fix.txt) includes the full prompt, chained calls, and final answer. The excerpt below shows preview and approved creation from [transcript 01](transcripts/01-chain-and-file.txt).
 
 ```text
 USER: In my issues-mcp-sandbox repo there's an open bug about the CSV export. Find it,
