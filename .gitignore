@@ -52,3 +52,6 @@ Thumbs.db
 
 # Vercel
 .vercel/*
+
+# Real MCP config (holds paths/env); commit week2/.mcp.json.example instead.
+/.mcp.json
