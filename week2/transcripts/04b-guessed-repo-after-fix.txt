@@ -1,0 +1,25 @@
+USER: Which of my sandbox issues have the most discussion? Show the top one's comments.
+
+TOOL CALL  list_repos({})
+TOOL RESULT (isError=False)  {"repos":[{"full_name":"gilad12-coder/issues-mcp-sandbox","description":"Sandbox for the CS146S week 2 GitHub issues MCP server","private":true,"has_issues":true,"open_issues_and_prs":5,"pushed_at":"2026-10-02T19:46:07Z"},{"full_name":"gilad12-coder/modern-software-dev-assignments","description":"Assignments for CS146S: The Modern Software Dev (Stanford University Fall 2026/2025)","private":false,"has_issues":false,"open_issues_and_prs":1,"pushed_at":"2026-10-02T05:32:56Z"},"[7 other repositories redacted for the writeup]"],"total_accessible":9,"note":null}
+
+TOOL CALL  search_issues({"repo": "gilad12-coder/issues-mcp-sandbox", "state": "all", "sort": "comments", "limit": 10})
+TOOL RESULT (isError=False)  {"total_count":5,"items":[{"repo":"gilad12-coder/issues-mcp-sandbox","number":1,"title":"CSV export crashes on rows with empty dates","state":"open","state_reason":null,"author":"gilad12-coder","labels":["bug"],"comments":2,"created_at":"2026-10-02T19:46:26Z","updated_at":"2026-10-02T19:46:33Z","url":"https://github.com/gilad12-coder/issues-mcp-sandbox/issues/1"},{"repo":"gilad12-coder/issues-mcp-sandbox","number":4,"title":"Login redirect loses the ?next parameter","state":"open","state_reason":null,"author":"gilad12-coder","labels":["bug"],"comments":0,"created_at":"2026-10-02T19:46:31Z","updated_at":"2026-10-02T19:46:31Z","url":"https://github.com/gilad12-coder/issues-mcp-sandbox/issues/4"},{"repo":"gilad12-coder/issues-mcp-sandbox","number":2,"title":"Dashboard takes 8s to load with 2k tasks","state":"open","state_reason":null,"author":"gilad12-coder","labels":["perf"],"comments":0,"created_at":"2026-10-02T19:46:28Z","updated_at":"2026-10-02T19:46:28Z","url":"https://github.com/gilad12-coder/issues-mcp-sandbox/issues/2"},{"repo":"gilad12-coder/issues-mcp-sandbox","number":3,"title":"Document the export command flags","state":"open","state_reason":null,"author":"gilad12-coder","labels":["documentation"],"comments":0,"created_at":"2026-10-02T19:46:29Z","updated_at":"2026-10-02T19:46:29Z","url":"https://github.com/gilad12-coder/issues-mcp-sandbox/issues/3"},{"repo":"gilad12-coder/issues-mcp-sandbox","number":5,"title":"Add regression test for CSV export with empty optional date fields","state":"open","state_reason":null,"author":"gilad12-coder","labels":["bug"],"comments":0,"created_at":"2026-10-02T19:54:19Z","updated_at":"2026-10-02T19:54:19Z","url":"https://github.com/gilad12-coder/issues-mcp-sandbox/issues/5"}],"note":null}
+
+TOOL CALL  get_issue({"repo": "gilad12-coder/issues-mcp-sandbox", "number": 1, "max_comments": 10})
+TOOL RESULT (isError=False)  {"repo":"gilad12-coder/issues-mcp-sandbox","number":1,"title":"CSV export crashes on rows with empty dates","state":"open","state_reason":null,"author":"gilad12-coder","labels":["bug"],"comments":2,"created_at":"2026-10-02T19:46:26Z","updated_at":"2026-10-02T19:46:33Z","url":"https://github.com/gilad12-coder/issues-mcp-sandbox/issues/1","is_pull_request":false,"body":"Exporting the weekly report to CSV throws `ValueError: time data '' does not match format` when any row has an empty `due_date`. Reproduce: create a task without a due date, then run `export --csv`.","body_truncated":false,"assignees":[],"milestone":null,"recent_comments":[{"author":"gilad12-coder","created_at":"2026-10-02T19:46:32Z","body":"Same here. Also happens when `completed_at` is empty, so it's any optional date column.","body_truncated":false},{"author":"gilad12-coder","created_at":"2026-10-02T19:46:33Z","body":"Looks like `parse_date` in export.py calls strptime without checking for empty strings.","body_truncated":false}],"comments_omitted":0}
+
+ASSISTANT: Your sandbox repo has **5 issues total**. The most discussed is **#1 "CSV export crashes on rows with empty dates"** with 2 comments:
+
+**Issue #1** (open, labeled `bug`)
+> Exporting the weekly report to CSV throws `ValueError: time data '' does not match format` when any row has an empty `due_date`. Reproduce: create a task without a due date, then run `export --csv`.
+
+**Comments:**
+1. **gilad12-coder** (2026-10-02 19:46:32)
+   > Same here. Also happens when `completed_at` is empty, so it's any optional date column.
+
+2. **gilad12-coder** (2026-10-02 19:46:33)
+   > Looks like `parse_date` in export.py calls strptime without checking for empty strings.
+
+The other 4 issues have no comments yet.
+

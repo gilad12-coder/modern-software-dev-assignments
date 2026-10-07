@@ -1,0 +1,7 @@
+# Secrets and per-machine config never get committed.
+.env
+.mcp.json
+*.token.json
+token.json
+.venv/
+.pytest_cache/

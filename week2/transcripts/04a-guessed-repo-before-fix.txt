@@ -1,0 +1,16 @@
+USER: Which of my sandbox issues have the most discussion? Show the top one's comments.
+
+ASSISTANT: I'll search for sandbox issues in your repo.
+
+BASH (not this server)  gh-axi issue list -R gilad12-coder/modern-software-dev-assignments --state all
+
+TOOL CALL  search_issues({"repo": "gilad12-coder/modern-software-dev-assignments", "query": "sandbox", "state": "all", "sort": "comments", "limit": 10})
+TOOL RESULT (isError=False)  {"total_count":0,"items":[]}
+
+TOOL CALL  search_issues({"repo": "gilad12-coder/modern-software-dev-assignments", "query": "", "state": "all", "sort": "comments", "limit": 10})
+TOOL RESULT (isError=False)  {"total_count":0,"items":[]}
+
+ASSISTANT: Your repo has no issues at all—open or closed. There are no "sandbox issues" to show.
+
+Are you thinking of a different repository, or did you mean something else like pull requests or discussions?
+

@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "github-issues": {
+      "type": "stdio",
+      "command": "uv",
+      "args": ["run", "--directory", "week2", "python", "server.py"]
+    }
+  }
+}
