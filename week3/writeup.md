@@ -1,73 +1,68 @@
 # Week 3 Write-up
 
 **Skill name**, and the repo you targeted:
-> [`paper-to-code-audit`](paper-to-code-audit/SKILL.md), targeting the AutoSaddler adapter in [Skynet](https://github.com/gilad12-coder/skynet) against [AutoSaddler, arXiv v1](https://arxiv.org/abs/2608.23041v1).
+> [`paper-to-code-audit`](paper-to-code-audit/SKILL.md), targeting [GEPA](https://github.com/gepa-ai/gepa). It compares GEPA's Combee implementation with [arXiv:2604.04247v2](https://arxiv.org/pdf/2604.04247v2).
 
 
 ## Part I: The Workflow
 
 **What the workflow is**, and why it's worth encoding:
-> Check whether a research implementation matches its paper or pinned upstream implementation. I repeatedly need this when integrating optimization methods into Skynet: extract the requirements, trace the actual execution path, and report supported matches, adaptations, discrepancies, and gaps in evidence.
+> Check a research paper's implementation against its paper, then report mistakes with source references and tests. I would use this when reviewing an algorithm I want to build on. The skill makes me trace the method through the code that runs, including defaults and delegated behavior.
 
 **The decision point** in it (what the agent has to judge, not just execute):
-> Decide whether a difference preserves the required behavior, intentionally changes it, contradicts it, or needs more evidence. Passing tests or importing the original engine is not enough; adapters and configuration can change the method.
+> Decide whether a difference is a mistake, an equivalent implementation, a documented deviation, or a choice the paper leaves open. A finding needs evidence from the source and reachable code. If the sources conflict or a check cannot run, the report should explain what remains unresolved.
 
 **What you learned running it manually** that you would not have guessed:
-> Before authoring the skill, I compared the paper's separate training/development splits ([§4](https://arxiv.org/html/2608.23041v1#S4)) with Skynet commit `c9b9201e895661b96cf8c689b5ac2012369ecbfe`. Its [`execute`](https://github.com/gilad12-coder/skynet/blob/c9b9201e895661b96cf8c689b5ac2012369ecbfe/backend/core/service_gateway/optimization/blackbox/autosaddler_runner.py#L1341) builds both splits from the same examples. [`visible_examples`](https://github.com/gilad12-coder/skynet/blob/c9b9201e895661b96cf8c689b5ac2012369ecbfe/backend/core/service_gateway/optimization/blackbox/autosaddler_runner.py#L222) explicitly documents this choice: an intentional adaptation, not independent development-set validation. This showed why an unchanged upstream engine is insufficient evidence of fidelity. The manual review covered adapter wiring; upstream execution and benchmark results were not tested.
+> I learned that passing the repository's tests does not establish whether the implementation follows the paper. Tests can confirm the behavior already implemented, including deliberate deviations. That led me to require the skill to trace each paper requirement through the code and check what the tests actually demonstrate.
 
 
 ## Part II: The Skill
 
-Installed for discovery at `~/.claude/skills/paper-to-code-audit` and `~/.codex/skills/paper-to-code-audit`, both linked to the submitted skill directory.
+I installed the skill at `~/.claude/skills/paper-to-code-audit` and `~/.codex/skills/paper-to-code-audit`, both linked to the submitted directory. The test checkout also had a project link at `.claude/skills/paper-to-code-audit`.
 
 **Your description**, verbatim:
 ```
-Audits an algorithm implementation against a research paper or pinned upstream code and reports matches, adaptations, and discrepancies with source evidence. Use when asked whether a repository implements a paper faithfully, preserves an upstream algorithm, or leaves out required behavior. Not for paper summaries without a code comparison or general code reviews.
+Audit an existing algorithm implementation against its research paper and relevant primary literature. Use when asked to check whether code follows a paper, compare an implementation with the published method, or find mistakes in a reproduction. Report discrepancies with source citations and verification evidence. Not for paper summaries, general code review, or implementing a method from scratch.
 ```
 
 **Why it's worded that way** (what a user would type to trigger it):
-> It names the action and the questions I ask: whether code implements a paper faithfully, preserves upstream behavior, or leaves something out. The explicit exclusions keep paper summaries and general reviews outside its scope, following the [Agent Skills description guidance](https://agentskills.io/skill-creation/best-practices).
+> It uses requests I would make: "check whether code follows a paper," "compare an implementation," and "find mistakes in a reproduction." The exclusions keep it from turning a summary request or a new implementation task into a general audit.
 
 **Judgment encoded in the body** (what it says to do when things are ambiguous, and what not to do):
-> Pin both sides, read and test the same revision, trace adapters and delegated code, and verify operators in raw source. Check that the reference states a requirement before judging fidelity. Separate method requirements from experimental settings. Classify each finding as equivalent, an intentional adaptation, a discrepancy, or insufficient evidence. Do not infer intent, equivalence, or performance from names or passing tests. The final check requires a source obligation and implementation evidence for each finding; implementation edits require a request to fix it.
+> The skill compares specific versions of the paper and code, tracing how each requirement is implemented. If it finds a difference, it checks whether the code uses an equivalent approach, handles the requirement elsewhere, or makes a documented change. Related research can help clarify the paper, but does not add requirements to it. The skill still reports documented departures from the paper, while treating details the paper leaves open as implementation choices. When the evidence is incomplete, it explains what remains uncertain and how to resolve it. It recommends corrections without changing the code unless asked.
 
 **Supporting files**, if any, and why they aren't inline:
-
-| File | Contents | Why it's separate |
-|---|---|---|
-| [references/assessment-guide.md](paper-to-code-audit/references/assessment-guide.md) | Classification guidance, four worked examples, and a report table. | Keeps detailed examples and the report format outside the main procedure; the skill reads this guide before an audit. |
+> None, The workflow and decision rules fit in `SKILL.md`.
 
 
 ## Part III: Testing
 
 **Triggering:**
 
-Each prompt ran in a fresh Claude Code 2.1.289 session (`claude-fable-5-1`) with the pinned checkout and full paper text supplied as context. None named the skill. A successful `Skill` tool call counted as activation; positive probes stopped after loading, while the near-miss ran to completion.
-
 | Prompt | Should fire? | Did it? |
 |---|---|---|
-| Does Skynet's AutoSaddler implementation match arXiv:2608.23041v1? Review only. | Yes | Yes; its first tool call loaded the skill. |
-| Check whether our AutoSaddler adapter preserves the upstream algorithm, including its split and selection rules. | Yes | Yes; its first tool call loaded the skill. |
-| Compare the AutoSaddler paper with this repository and tell me what we left out or changed. | Yes | Yes; its first tool call loaded the skill. |
-| Summarize arXiv:2608.23041v1; do not inspect a repository or implementation. | No (near-miss) | No; it read only the paper and returned a summary. |
+| Check whether this repository implements Combee from arXiv:2604.04247v2 faithfully. | Yes | Yes; first tool call. |
+| Compare the Combee code here with the published method and identify any mistakes. | Yes | Yes; first tool call. |
+| Audit GEPA's reproduction of Combee, including its equations, defaults, and integration. | Yes | Yes; first tool call. |
+| Summarize the Combee paper arXiv:2604.04247v2 and explain its main ideas. Do not inspect or compare repository code. | No  | No skill invocation or code inspection. |
 
 **End-to-end run** on your repo, and the result:
-> Audited Skynet commit `c9b9201e` against arXiv v1 for data separation, acceptance-policy wiring, and returned-candidate selection. The skill read its assessment guide, inspected the pinned adapter, and checked the raw upstream source at `9df6d2e3e1d3946057243690bca28e136fa81179`. The reviewed result:
-
-| Behavior | Assessment | Result and evidence |
-|---|---|---|
-| Separate training/development data | Intentional adaptation | Both splits wrap the same examples; the docstring documents re-scoring the same pool. This does not provide independent development-set validation. [Adapter](https://github.com/gilad12-coder/skynet/blob/c9b9201e895661b96cf8c689b5ac2012369ecbfe/backend/core/service_gateway/optimization/blackbox/autosaddler_runner.py#L222). |
-| Acceptance on valid observations | Equivalent | The wired policy requires identical case/repetition keys and strict improvement; ties are rejected. [Upstream policy](https://github.com/microsoft/AutoSaddler/blob/9df6d2e3e1d3946057243690bca28e136fa81179/src/autosaddler/v2/core/policies.py#L102). |
-| Invalid rollout handling | Insufficient evidence | The policy filters invalid pairs; the paper does not specify this case. [Filtering](https://github.com/microsoft/AutoSaddler/blob/9df6d2e3e1d3946057243690bca28e136fa81179/src/autosaddler/v2/core/policies.py#L112). |
-| Selection on normal completion | Equivalent | Upstream selects the highest development score, and the adapter returns that candidate. [Ranking](https://github.com/microsoft/AutoSaddler/blob/9df6d2e3e1d3946057243690bca28e136fa81179/src/autosaddler/v2/core/policies.py#L146), [return path](https://github.com/gilad12-coder/skynet/blob/c9b9201e895661b96cf8c689b5ac2012369ecbfe/backend/core/service_gateway/optimization/blackbox/autosaddler_runner.py#L1446). |
-| Timeout or evaluator failure | Insufficient evidence | The runner attaches a recovered candidate to an error; the parent normally raises `ServiceError`. The paper does not specify interruption recovery. [Recovery](https://github.com/gilad12-coder/skynet/blob/c9b9201e895661b96cf8c689b5ac2012369ecbfe/backend/core/service_gateway/optimization/blackbox/autosaddler_runner.py#L1490), [parent](https://github.com/gilad12-coder/skynet/blob/c9b9201e895661b96cf8c689b5ac2012369ecbfe/backend/core/service_gateway/optimization/blackbox/native_runtime.py#L892). |
-
-Earlier trials exposed an overbroad dependency search, a fetched summary that reversed a tie-break, and overclassification of unspecified behavior. I restricted source lookup, required raw code, ordered the classification rules, and added a cancellation counterexample. A fresh regression test and full rerun correctly left unspecified interruption recovery unverified. The four trigger results above remain applicable because the description did not change.
-
-No implementation files changed. These are source-inspection findings: the checkout lacked the upstream runtime, test commands were unavailable under the evaluation permissions, and no Skynet tests or benchmarks ran.
-
-
-## Submission
-1. Check that no unanswered placeholders remain.
-2. Confirm the skill directory itself is committed under `week3/`.
-3. Push all changes to your remote repository and submit via Gradescope.
+> [GEPA](https://github.com/gepa-ai/gepa) improves the text instructions, or prompts, given to an LLM. It evaluates a selected candidate prompt on task examples, uses the resulting feedback to propose a revision, and evaluates that revision. Repeating this process searches for better prompts without changing model weights.
+>
+> [Combee](https://arxiv.org/pdf/2604.04247v2) changes how that feedback is used to form a revision. A batch contains feedback from multiple task executions using the selected prompt; it is not a set of independent optimization experiments or candidate prompts. Combee duplicates and shuffles the feedback, divides it into groups, and uses one model call per group to propose a revision. Those calls can run in parallel, and another call combines their revisions into one proposed prompt update.
+>
+> Batch size counts those task executions before feedback duplication. The paper's [batch-size controller](https://arxiv.org/html/2604.04247v2#S3.SS3) measures several trial batch sizes and estimates the time to process the training data. It chooses a size where further increases offer little speed benefit, subject to an upper bound intended to limit quality loss. The paper does not specify when to repeat this selection during optimization.
+>
+> I gave the audit agent this prompt, verbatim, including its setup context:
+>
+> ```text
+> Review this repository's Combee implementation against arXiv:2604.04247v2 and relevant primary literature. Check the full method and the paths users run. Report any mistakes, documented deviations, and evidence gaps with precise paper and code references. Run useful offline checks and recommend corrections where warranted. Produce the audit report without changing the implementation.
+>
+> Repository: gepa-ai/gepa, pinned at fb1ed589fd83372caef499cffc2c73173d3b096b. The complete versioned paper is available at /private/var/folders/mb/1djn4m8s3jdf9r4dkzs0dd_80000gn/T/cs146s-combee-audit-ghpmmo7c/paper.txt, extracted from https://arxiv.org/pdf/2604.04247v2. Rendered method and equation pages are at /private/var/folders/mb/1djn4m8s3jdf9r4dkzs0dd_80000gn/T/cs146s-combee-audit-ghpmmo7c/method-page.png and /private/var/folders/mb/1djn4m8s3jdf9r4dkzs0dd_80000gn/T/cs146s-combee-audit-ghpmmo7c/controller-page.png. Use the project instructions and available skills when relevant. All Python execution must use uv and Python 3.11. For offline checks, uv run --python 3.11 --with pytest pytest ... provides minimal tooling. Do not enable RECORD_TESTS or run llm_live tests.
+> ```
+>
+> The skill reviewed GEPA at commit [fb1ed58](https://github.com/gepa-ai/gepa/commit/fb1ed589fd83372caef499cffc2c73173d3b096b). It found that this version lacks the paper's batch-size controller and uses a documented shortcut for one to three feedback records: one model call, without duplication or a final call combining group proposals. It also found a blog example labeled batch size 3 where the paper reports 1.
+>
+> All 55 existing [Combee tests](https://github.com/gepa-ai/gepa/blob/fb1ed589fd83372caef499cffc2c73173d3b096b/tests/test_combee_reflection_lm.py) passed. They check feedback grouping and duplication, combining group proposals, the small-batch shortcut, and integration with GEPA. Additional checks called GEPA's optimization function, `gepa.optimize`, with synthetic feedback and scripted model replies, using batches of 9, 40, 60, 84, and 94 feedback records. For the first proposal in each check, they inspected the grouping, number of model calls, and information passed to the final model call. No tracked GEPA source files changed.
+>
+> The first audit report claimed that the small-batch shortcut had negligible impact on prompt quality without measuring it. I tightened the skill's evidence rules and repeated all four trigger tests and the full audit. I then checked the new report, removed remaining unsupported claims, and linked the reference code from ACE, another prompt-learning framework, to a specific commit. The [reviewed audit](combee-audit.md) contains the findings, code references, test command, and limitations. These checks did not measure prompt quality, speedups, or behavior with real model providers.
