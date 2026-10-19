@@ -49,7 +49,7 @@ All commands below were run on macOS, Node 22.22.0, npm, machine timezone Americ
 **The hardest call** on what to include:
 > The `$`-prefixed instance fields (`$d`, `$y`, `$L`, `$u`, `$x`). They look like internal detail that an
 > agent can find by reading `src/index.js`, which argues for leaving them out. But 14 of the 37 plugins
-> reads or writes them, and without them an agent will call public getters inside plugins or invent new
+> read or write them, and without them an agent will call public getters inside plugins or invent new
 > fields. I kept them as one line. I also decided to say "`TZ=UTC npm test`" and explain why, instead
 > of just "`npm test`". The explanation costs two lines, but without it an agent on a US machine sees 6
 > failures and starts to "fix" correct code.
