@@ -112,6 +112,8 @@ It checked the unchanged integer and empty event list, then assigned `8` and che
 Assertions stayed outside the callback, so no exception-handler override was needed.
 
 The focused module passed 11 tests. The full suite passed 1,629 tests. Flake8 passed with the repository plugin installed.
+The agent piped test output through `tail`; its printed full-suite `exit` value belongs to `tail`, not Python.
+The unittest `OK` summaries support its reported outcomes. The independent clean-clone replay captured Python's exit 0 for the new test and full suite.
 The agent followed the existing unittest style and changed no production code or fixtures.
 It suggested more detail about formatter expectations and test placement.
 I kept that detail out of the root file because the local module and configuration already answer those questions.

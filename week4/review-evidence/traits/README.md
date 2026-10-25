@@ -18,6 +18,8 @@ The final fork adds only `CLAUDE.md`. Trials 1 and 2 used v1; Trial 3 used v2, w
 The source suite and separately installed wheel each ran 1,628 tests successfully, with no failures, errors, or skips.
 Both emitted two `RemovedInSphinx11Warning` messages under Sphinx 9.0.4.
 The regression patch raises the count to 1,629. Clean-clone replay verified that count and passed Flake8.
+Trial 2 piped test output through `tail`, so its printed full-suite status does not establish Python's exit status.
+Its unittest summaries show `OK`; `patch-focused` and `patch-full` independently record Python's exit 0 without a pipeline.
 Independent checks also verified normal/strict CI lint, source/wheel build, warnings-as-errors documentation build, and the library smoke test.
 
 The initial exploratory environment used the framework CPython 3.11.9 interpreter directly.
@@ -35,7 +37,8 @@ git apply /absolute/path/to/week4/review-evidence/traits/trial2.patch
 ```
 
 Session exports preserve visible text, tool calls, and results. They omit internal reasoning, private initialization data, and telemetry.
-`<traits-checkout>` and `<week4>` replace local absolute paths. Each export includes a SHA-256 hash of the retained raw session record.
+`<traits-checkout>` and `<week4>` replace project paths; `<claude-executable>` replaces the local launcher path.
+Each export includes a SHA-256 hash of the retained raw session record.
 The prompts requested a root-guide read, and the launcher requested safe mode. The records prove those reads and subsequent actions,
 not automatic discovery or complete instruction isolation. These were observed-use trials, not a controlled causal experiment.
 
