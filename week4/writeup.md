@@ -56,7 +56,7 @@ There is no vendored dependency directory in the tracked tree.
 ## Part II: The File
 
 I chose `CLAUDE.md` because the trials used Claude Code, which loads that filename from the repository root.
-The final guide contains 468 whitespace-delimited words. It covers the project, architecture, exact commands, observed conventions, and guardrails.
+The final guide contains 487 whitespace-delimited words. It covers the project, architecture, exact commands, observed conventions, and guardrails.
 
 **Deliberate omissions:** I left out the full algorithm explanation, CLI option catalogue, installation marketing, and generic coding advice.
 The source and `--help` already provide those details. I also avoided inventing a lint command or upgrading the package's runtime code.
@@ -101,3 +101,9 @@ This was partial adoption, not proof that the agent always propagates failures c
 
 I then checked the exact final wrapper directly in Bash and zsh. It returned zero for the full suite and one for broken discovery in both shells.
 [Four checked cases](review-evidence/fsed/wrapper-checks.json) support the guide's command independently of the agent's summary.
+
+During independent review, a fresh clone exposed another setup trap: `.venv/` was not ignored by upstream.
+The trial checkout hid it through a local exclude. A separate reviewer reproduced accidental staging in a clean clone.
+The final [v3 guide](review-evidence/fsed/CLAUDE-v3.md) now adds that exclude before creating the environment.
+A [fresh-clone check](review-evidence/fsed/venv-exclude-check.json) confirms that generated environment files and the test log stay out of staging.
+The saved v1/v2 trial records remain unchanged.

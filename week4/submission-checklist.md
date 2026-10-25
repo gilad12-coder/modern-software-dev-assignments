@@ -8,7 +8,7 @@ This file records preparation checks. It is not the assignment write-up.
 | Rubric section | Available points | Readiness assessment |
 |---|---:|---|
 | I. Exploration | 20 | Covered: checked setup, test, build, and run commands; honest absence of lint; architecture; conventions; generated files and fixtures. |
-| II. Agent file | 55 | Covered: all five required areas in a 468-word root guide, with concrete repository details and working commands. |
+| II. Agent file | 55 | Covered: all five required areas in a 487-word root guide, with concrete repository details and working commands. |
 | III. Trials | 25 | Covered: two fresh task records, a temporary test patch, a grounded improvement, and an honest follow-up account. |
 
 The evidence supports the full-credit criteria in all three sections. This assessment does not assign the course grade.
@@ -22,7 +22,7 @@ The write-up states the material limits: one Python version, a UTF-8 host, globa
 - [Assignment repository, grading branch `week4-agent-config`](https://github.com/gilad12-coder/modern-software-dev-assignments/tree/week4-agent-config/week4)
 - [Assignment PR #4](https://github.com/gilad12-coder/modern-software-dev-assignments/pull/4)
 - [fsed fork, branch `agent-config`](https://github.com/gilad12-coder/fsed/tree/agent-config)
-- [Root guide at the exact fork commit](https://github.com/gilad12-coder/fsed/blob/eb812ed6e8bed0616a5280cbbec24315de2f3454/CLAUDE.md)
+- [Root guide at the exact fork commit](https://github.com/gilad12-coder/fsed/blob/7bc3c0b6d3cd1a9acea350eb143b1f110b3f04c0/CLAUDE.md)
 - [Internal fork PR #1](https://github.com/gilad12-coder/fsed/pull/1)
 
 The two guide copies match. The fork changes only `CLAUDE.md`; the trial test is saved as a patch, not shipped as a package change.

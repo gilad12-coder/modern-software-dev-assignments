@@ -57,3 +57,11 @@ Build output retains legacy metadata warnings. The wheel was built, but a clean 
 
 The documentation index did not have a matching `fsed` or build-version entry.
 Repository source and official documentation supplied the reference material; the pinned commands were verified locally.
+
+## Final review correction
+
+A fresh reviewer reproduced an unignored `.venv/` in a clean Python 3.11 clone.
+A separate verifier confirmed candidate FS-001: broad staging also picked up the generated environment and its test log.
+The final [v3 guide](CLAUDE-v3.md) adds a local Git exclude before environment creation.
+[venv-exclude-check.json](venv-exclude-check.json) records a fresh-clone check of the added command.
+The fork still changes only its root guide. The earlier snapshots preserve the exact files used in the trials.

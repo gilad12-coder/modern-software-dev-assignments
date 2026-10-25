@@ -20,8 +20,10 @@ It is a Python library and Click CLI. Reviewed at upstream `0227a62`.
 
 Run from the fork root. The following environment was checked on Python 3.11.9.
 The old Python 2.7-3.8 Travis matrix was not rerun.
+Upstream does not ignore `.venv/`; the setup adds a local Git exclude.
 
 ```sh
+printf '/.venv/\n' >> "$(git rev-parse --git-path info/exclude)"
 python3.11 -m venv .venv
 .venv/bin/python -m pip install pip==24.3.1 setuptools==75.3.0 wheel==0.45.1 build==1.2.2.post1 click==8.1.8
 .venv/bin/python -m pip install --no-build-isolation -e .

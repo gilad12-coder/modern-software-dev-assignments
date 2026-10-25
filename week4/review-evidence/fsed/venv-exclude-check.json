@@ -1,0 +1,14 @@
+{
+  "check": "FS-001 local exclude in a fresh clone",
+  "command": "printf '/.venv/\\n' >> \"$(git rev-parse --git-path info/exclude)\"",
+  "exit_code": 0,
+  "python": "3.11.9",
+  "environment_creation": "python3.11 -m venv --without-pip .venv",
+  "log_fixture": "Synthetic text; checks exclusion only, not test behavior",
+  "status_before": "",
+  "status_after": "",
+  "dry_run_staging": "",
+  "git_check_ignore": ".git/info/exclude:7:/.venv/\t.venv/test-results.log\n",
+  "result": "PASS: generated environment and log are ignored",
+  "source_clone_commit": "eb812ed6e8bed0616a5280cbbec24315de2f3454"
+}
