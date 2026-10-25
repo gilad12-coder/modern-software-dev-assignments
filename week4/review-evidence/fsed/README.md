@@ -33,7 +33,9 @@ The trials are separate from the independent PR review gate.
 
 - [Trial 1](trial1.json): run the full suite with [guide v1](CLAUDE-v1.md); 16 tests pass.
 - [Trial 2](trial2.json): add a CLI regression test with v1; 17 tests pass with the temporary change.
-- [Trial 2 patch](trial2.patch): the only source edit made during the trials.
+- [Trial 2 patch](trial2.patch): the only source edit made during the trials. This diff has zero context.
+  To replay it, pass its path to `git apply --unidiff-zero` from a clean fsed checkout.
+  Plain `git apply` can place the method outside `TestFsed`, leaving only 16 discovered tests.
 - [Independent trial 2 checks](trial2-independent-checks.json): direct process exits for the [focused test](trial2-independent-focused.log) and [full suite](trial2-independent-full.log).
 - [Trial 3](trial3.json): repeat Task 1 with [guide v2](CLAUDE-v2.md); 16 tests pass. The agent partially adopted the logging wrapper.
 - [Trial 4](trial4.json): repeat Task 1 with [guide v4](CLAUDE-v4.md); the agent preserves the inner wrapper's `exit` and prints its status.
@@ -50,6 +52,9 @@ Trial 4 runs the exact inner wrapper, then prints its status with an outer `echo
 
 The task prompts used existing local dependencies. MCP servers and additional agents were disabled.
 Personal global instructions still loaded, so the trials do not measure the guide in isolation.
+Claude Code also reads parent-directory `CLAUDE.md` files. The checkout sits beneath the assignment's `week4/CLAUDE.md`.
+The raw records do not list loaded instruction files. That parent's content during Trials 1–3 was not captured and remains unknown.
+During Trial 4, the parent and fork copies both matched v4.
 Only Python 3.11.9 and the host's UTF-8 locale were tested. The old Python 2.7–3.8 matrix was not run.
 Build output retains legacy metadata warnings. The wheel was built, but a clean wheel installation was not separately tested.
 

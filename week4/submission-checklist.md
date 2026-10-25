@@ -12,7 +12,8 @@ This file records preparation checks. It is not the assignment write-up.
 | III. Trials | 25 | Covered: two fresh task records, a temporary test patch, a grounded improvement, and an honest follow-up account. |
 
 The evidence supports the full-credit criteria in all three sections. This assessment does not assign the course grade.
-The write-up states the material limits: one Python version, a UTF-8 host, global instructions, and imperfect exit propagation in agent tool calls.
+The write-up states the material limits: one Python version, a UTF-8 host, inherited instructions, and imperfect exit propagation in agent tool calls.
+Parent-guide content during Trials 1–3 remains unknown; the evidence does not isolate the guide's effect.
 The final follow-up used the guide's inner wrapper correctly; direct shell checks cover its failure behavior.
 
 ## Files and branches

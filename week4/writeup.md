@@ -55,7 +55,7 @@ There is no vendored dependency directory in the tracked tree.
 
 ## Part II: The File
 
-I chose `CLAUDE.md` because the trials used Claude Code, which loads that filename from the repository root.
+I chose `CLAUDE.md` because the trials used Claude Code, which [reads that filename from the working directory and its parents](https://code.claude.com/docs/en/memory).
 The final guide contains 463 whitespace-delimited words. It covers the project, architecture, exact commands, observed conventions, and guardrails.
 
 **Deliberate omissions:** I left out the full algorithm explanation, CLI option catalogue, installation marketing, and generic coding advice.
@@ -75,6 +75,9 @@ The [source review](source-review.md) records the full comparison, access limits
 Each task ran in a fresh, headless Claude Code 2.1.308 session with the guide at the fork root.
 The session records identify the model as `claude-opus-5-5`. The task prompts did not name the guide or supply its commands.
 The environment was already installed. Personal global instructions also loaded, so these trials do not isolate the guide's effect.
+The checkout also sits beneath the assignment's `week4/CLAUDE.md`, which could contribute parent instructions.
+The raw records do not list loaded instruction files. That parent's content during Trials 1–3 was not captured and remains unknown.
+During Trial 4, the parent and fork copies both matched v4.
 
 **Task 1:** “Run this repository’s full test suite and report whether it passes. Do not change source files. Report the exact command, test count, exit status, and any setup or discovery pitfall you notice.”
 
