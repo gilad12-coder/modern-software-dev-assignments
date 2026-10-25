@@ -78,9 +78,3 @@ A [fresh repeat of Task 1](review-evidence/traits/trial3.json) ran the documente
 
 These trials verify explicit guide reads, not automatic discovery or complete instruction isolation. I did not run a comparison without the guide.
 Other platforms, Python versions, minimal-dependency environments, and interactive GUI flows were not tested.
-
-## Submission
-
-1. Check that every prompt has an answer and that the evidence links work.
-2. Confirm collaborator access for `mihail911`, `isaackann`, and `vdaita` on the assignment repository.
-3. Push the final changes, then submit through Gradescope.
