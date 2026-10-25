@@ -21,7 +21,6 @@ The final follow-up used the guide's inner wrapper correctly; direct shell check
 - [Write-up](writeup.md)
 - [Submission copy of CLAUDE.md](CLAUDE.md)
 - [Evidence index](review-evidence/fsed/README.md)
-- [Factory and Basis source review](source-review.md)
 - [Assignment repository, grading branch `week4-agent-config`](https://github.com/gilad12-coder/modern-software-dev-assignments/tree/week4-agent-config/week4)
 - [Assignment PR #4](https://github.com/gilad12-coder/modern-software-dev-assignments/pull/4)
 - [fsed fork, branch `agent-config`](https://github.com/gilad12-coder/fsed/tree/agent-config)

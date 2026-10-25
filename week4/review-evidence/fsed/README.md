@@ -79,6 +79,6 @@ The fork still changes only its root guide. The earlier snapshots preserve the e
 
 ## Source-guidance follow-up
 
-The [source review](../../source-review.md) compares the assignment with the full Factory talk transcript and the complete Basis article.
+The write-up cites the Factory talk and Basis article that informed the final guide.
 V4 makes module navigation actionable and makes the verified exit-preserving command the default full-suite check.
 Third-party transcript and slide caches stay in ignored local scratch space; they are not included in the submission.

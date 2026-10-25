@@ -68,7 +68,7 @@ I stated that the old Python 2.7–3.8 Travis matrix was not rerun. A Python 3.1
 I also checked the guide against [Factory's agent-readiness talk](https://ai.engineer/talks/ShuJ_CN6zr4-making-codebases-agent-ready)
 and [Basis's article](https://www.getbasis.ai/blogs/how-we-made-our-monorepo-ergonomic-for-agents).
 Their guidance informed the actionable module directions, one current guide, and explicit verification steps.
-The [source review](source-review.md) records the full comparison, access limits, and engineering gaps outside this assignment's scope.
+I read the full talk transcript and key slides. X blocked access, so I used Basis's complete article on its own website.
 
 ## Part III: Trying It Out
 
