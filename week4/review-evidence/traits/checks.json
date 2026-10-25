@@ -1,0 +1,324 @@
+[
+  {
+    "name": "unbuilt-import",
+    "argv": [
+      "<traits-checkout>/.venv/bin/python",
+      "-c",
+      "from traits.api import HasTraits, Int"
+    ],
+    "cwd": "<traits-checkout>",
+    "exit_code": 1,
+    "seconds": 0.03,
+    "time_utc": "2026-10-25T16:49:45.039227+00:00"
+  },
+  {
+    "name": "install",
+    "argv": [
+      "<traits-checkout>/.venv/bin/python",
+      "-m",
+      "pip",
+      "install",
+      "-e",
+      ".[test,docs]",
+      "build"
+    ],
+    "cwd": "<traits-checkout>",
+    "exit_code": 0,
+    "seconds": 361.4,
+    "time_utc": "2026-10-25T16:53:38.680491+00:00"
+  },
+  {
+    "name": "environment",
+    "argv": [
+      "<traits-checkout>/.venv/bin/python",
+      "-m",
+      "pip",
+      "freeze"
+    ],
+    "cwd": "<traits-checkout>",
+    "exit_code": 0,
+    "seconds": 0.28,
+    "time_utc": "2026-10-25T16:53:38.962853+00:00"
+  },
+  {
+    "name": "smoke",
+    "argv": [
+      "<traits-checkout>/.venv/bin/python",
+      "-c",
+      "from traits.api import HasTraits, Int; x = HasTraits(); x.add_trait(\"count\", Int()); x.count = 2; assert x.count == 2; print(x.count)"
+    ],
+    "cwd": "<traits-checkout>",
+    "exit_code": 0,
+    "seconds": 0.09,
+    "time_utc": "2026-10-25T16:53:43.207814+00:00"
+  },
+  {
+    "name": "tests",
+    "argv": [
+      "<traits-checkout>/.venv/bin/python",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "traits",
+      "-t",
+      ".",
+      "-v"
+    ],
+    "cwd": "<traits-checkout>",
+    "exit_code": 0,
+    "seconds": 23.71,
+    "time_utc": "2026-10-25T16:54:05.679305+00:00"
+  },
+  {
+    "name": "lint",
+    "argv": [
+      "<traits-checkout>/.venv/bin/python",
+      "-m",
+      "flake8"
+    ],
+    "cwd": "<traits-checkout>",
+    "exit_code": 0,
+    "seconds": 0.41,
+    "time_utc": "2026-10-25T16:54:06.087100+00:00"
+  },
+  {
+    "name": "strict-lint",
+    "argv": [
+      "<traits-checkout>/.venv/bin/python",
+      "-m",
+      "flake8",
+      "--select",
+      "H102",
+      "--copyright-end-year",
+      "current"
+    ],
+    "cwd": "<traits-checkout>",
+    "exit_code": 0,
+    "seconds": 0.37,
+    "time_utc": "2026-10-25T16:54:06.458656+00:00"
+  },
+  {
+    "name": "build",
+    "argv": [
+      "<traits-checkout>/.venv/bin/python",
+      "-m",
+      "build"
+    ],
+    "cwd": "<traits-checkout>",
+    "exit_code": 0,
+    "seconds": 3.94,
+    "time_utc": "2026-10-25T16:54:10.403476+00:00"
+  },
+  {
+    "name": "docs",
+    "argv": [
+      "<traits-checkout>/.venv/bin/python",
+      "-m",
+      "sphinx",
+      "-b",
+      "html",
+      "-W",
+      "source",
+      "build"
+    ],
+    "cwd": "<traits-checkout>/docs",
+    "exit_code": 0,
+    "seconds": 5.08,
+    "time_utc": "2026-10-25T16:54:15.483585+00:00"
+  },
+  {
+    "name": "wheel-install",
+    "argv": [
+      "<week4>/.work/traits-audit/setup-probe/.venv/bin/python",
+      "-m",
+      "pip",
+      "install",
+      "<traits-checkout>/dist/traits-7.2.0-cp311-cp311-macosx_10_9_universal2.whl[test]"
+    ],
+    "cwd": "<week4>/.work/traits-audit/setup-probe",
+    "exit_code": 0,
+    "seconds": 4.59,
+    "time_utc": "2026-10-25T16:54:31.217596+00:00"
+  },
+  {
+    "name": "wheel-origin",
+    "argv": [
+      "<week4>/.work/traits-audit/setup-probe/.venv/bin/python",
+      "-c",
+      "import traits, traits.ctraits; print(traits.__file__); print(traits.ctraits.__file__)"
+    ],
+    "cwd": "<week4>/.work/traits-audit/setup-probe",
+    "exit_code": 0,
+    "seconds": 0.51,
+    "time_utc": "2026-10-25T16:54:31.729254+00:00"
+  },
+  {
+    "name": "wheel-tests",
+    "argv": [
+      "<week4>/.work/traits-audit/setup-probe/.venv/bin/python",
+      "-m",
+      "unittest",
+      "discover",
+      "-v",
+      "traits"
+    ],
+    "cwd": "<week4>/.work/traits-audit/setup-probe",
+    "exit_code": 0,
+    "seconds": 22.96,
+    "time_utc": "2026-10-25T16:54:54.692329+00:00"
+  },
+  {
+    "name": "clean-clone",
+    "argv": [
+      "git",
+      "clone",
+      "--no-hardlinks",
+      "<traits-checkout>",
+      "<week4>/.work/traits-audit/clean-traits"
+    ],
+    "cwd": "<traits-checkout>",
+    "exit_code": 0,
+    "seconds": 0.12,
+    "time_utc": "2026-10-25T16:56:58.694227+00:00"
+  },
+  {
+    "name": "clean-exclude",
+    "argv": [
+      "sh",
+      "-c",
+      "printf '\\n/.venv/\\n/.mypy_cache/\\n' >> .git/info/exclude"
+    ],
+    "cwd": "<week4>/.work/traits-audit/clean-traits",
+    "exit_code": 0,
+    "seconds": 0.01,
+    "time_utc": "2026-10-25T16:56:58.699742+00:00"
+  },
+  {
+    "name": "clean-venv",
+    "argv": [
+      "uv",
+      "venv",
+      "--python",
+      "3.11.9",
+      "--seed",
+      ".venv"
+    ],
+    "cwd": "<week4>/.work/traits-audit/clean-traits",
+    "exit_code": 0,
+    "seconds": 0.05,
+    "time_utc": "2026-10-25T16:56:58.748208+00:00"
+  },
+  {
+    "name": "clean-install",
+    "argv": [
+      "<week4>/.work/traits-audit/clean-traits/.venv/bin/python",
+      "-m",
+      "pip",
+      "install",
+      "-e",
+      ".[test,docs]",
+      "build"
+    ],
+    "cwd": "<week4>/.work/traits-audit/clean-traits",
+    "exit_code": 0,
+    "seconds": 6.43,
+    "time_utc": "2026-10-25T16:57:05.183332+00:00"
+  },
+  {
+    "name": "clean-focused",
+    "argv": [
+      "<week4>/.work/traits-audit/clean-traits/.venv/bin/python",
+      "-m",
+      "unittest",
+      "traits.tests.test_integer",
+      "-v"
+    ],
+    "cwd": "<week4>/.work/traits-audit/clean-traits",
+    "exit_code": 0,
+    "seconds": 2.59,
+    "time_utc": "2026-10-25T16:57:07.769406+00:00"
+  },
+  {
+    "name": "clean-status",
+    "argv": [
+      "git",
+      "status",
+      "--short",
+      "--untracked-files=all"
+    ],
+    "cwd": "<week4>/.work/traits-audit/clean-traits",
+    "exit_code": 0,
+    "seconds": 0.04,
+    "time_utc": "2026-10-25T16:57:07.809572+00:00"
+  },
+  {
+    "name": "patch-replay",
+    "argv": [
+      "git",
+      "apply",
+      "<week4>/.work/traits-audit/trial2.patch"
+    ],
+    "cwd": "<week4>/.work/traits-audit/clean-traits",
+    "exit_code": 0,
+    "seconds": 0.01,
+    "time_utc": "2026-10-25T16:57:40.338217+00:00"
+  },
+  {
+    "name": "patch-focused",
+    "argv": [
+      "<week4>/.work/traits-audit/clean-traits/.venv/bin/python",
+      "-m",
+      "unittest",
+      "traits.tests.test_integer.TestInt.test_rejected_float_preserves_value_and_does_not_notify",
+      "-v"
+    ],
+    "cwd": "<week4>/.work/traits-audit/clean-traits",
+    "exit_code": 0,
+    "seconds": 0.25,
+    "time_utc": "2026-10-25T16:57:40.591828+00:00"
+  },
+  {
+    "name": "patch-full",
+    "argv": [
+      "<week4>/.work/traits-audit/clean-traits/.venv/bin/python",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "traits",
+      "-t",
+      ".",
+      "-v"
+    ],
+    "cwd": "<week4>/.work/traits-audit/clean-traits",
+    "exit_code": 0,
+    "seconds": 21.73,
+    "time_utc": "2026-10-25T16:58:02.325382+00:00"
+  },
+  {
+    "name": "patch-lint",
+    "argv": [
+      "<week4>/.work/traits-audit/clean-traits/.venv/bin/python",
+      "-m",
+      "flake8"
+    ],
+    "cwd": "<week4>/.work/traits-audit/clean-traits",
+    "exit_code": 0,
+    "seconds": 0.43,
+    "time_utc": "2026-10-25T16:58:02.755654+00:00"
+  },
+  {
+    "name": "patch-restored",
+    "argv": [
+      "git",
+      "restore",
+      "--",
+      "traits/tests/test_integer.py"
+    ],
+    "cwd": "<week4>/.work/traits-audit/clean-traits",
+    "exit_code": 0,
+    "seconds": 0.02,
+    "time_utc": "2026-10-25T16:58:02.777632+00:00"
+  }
+]
