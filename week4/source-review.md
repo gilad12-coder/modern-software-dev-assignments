@@ -28,7 +28,7 @@ Sources: [requested X post](https://x.com/trybasis/status/2056881705269580023), 
 
 ## Application to fsed
 
-The chosen package has 824 implementation lines across four modules at the explored commit.
+The chosen package has 824 implementation lines, including its package initializer, at the explored commit.
 One root `CLAUDE.md` gives enough navigation without a directory hierarchy of instruction files.
 The final guide has 463 whitespace-delimited words. The submission copy matches the fork root.
 
