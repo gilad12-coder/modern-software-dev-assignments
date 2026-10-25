@@ -4,6 +4,9 @@ These checks ran on October 25, 2026, against upstream commit
 `0227a62b0dd4ba64176d3e8394243fc8157296b5` and Python 3.11.9 on macOS.
 The final fork changes only its root `CLAUDE.md`. Trial 2's temporary test was restored after verification.
 
+The current guide is [week4/CLAUDE.md](../../CLAUDE.md), with an identical [v4 snapshot](CLAUDE-v4.md).
+The v1–v3 files below are historical trial and review evidence. They are not instructions for current work.
+
 ## Baseline checks
 
 | Check | Result | Record |
@@ -24,8 +27,8 @@ No linter is configured. Syntax compilation is not a lint result.
 
 ## Fresh agent trials
 
-All three trials used separate Claude Code sessions with `CLAUDE.md` present and no task-prompt hint about the file.
-The recorded model is `claude-opus-5-5`. The default model was used for these assignment trials.
+All four trials used separate Claude Code sessions with `CLAUDE.md` present and no task-prompt hint about the file.
+The recorded model is `claude-opus-5-5`. Trials 1–3 used the default model; Trial 4 explicitly selected the same model at medium effort.
 The trials are separate from the independent PR review gate.
 
 - [Trial 1](trial1.json): run the full suite with [guide v1](CLAUDE-v1.md); 16 tests pass.
@@ -33,6 +36,8 @@ The trials are separate from the independent PR review gate.
 - [Trial 2 patch](trial2.patch): the only source edit made during the trials.
 - [Independent trial 2 checks](trial2-independent-checks.json): direct process exits for the [focused test](trial2-independent-focused.log) and [full suite](trial2-independent-full.log).
 - [Trial 3](trial3.json): repeat Task 1 with [guide v2](CLAUDE-v2.md); 16 tests pass. The agent partially adopted the logging wrapper.
+- [Trial 4](trial4.json): repeat Task 1 with [guide v4](CLAUDE-v4.md); the agent preserves the inner wrapper's `exit` and prints its status.
+- Trial 4 outputs: [16 passing tests](trial4-tests.log) and [expected discovery failure](trial4-discovery-failure.log), with statuses 0 and 1 in the tool record.
 - [Shell wrapper checks](wrapper-checks.json): Bash and zsh each return 0 for the full suite and 1 for the known discovery failure.
 
 Each trial JSON contains its prompt, model, tool calls, tool results, and final answer.
@@ -41,6 +46,7 @@ Raw session records remain in the ignored local `.work/` directory; their SHA-25
 `<FSed_CHECKOUT>` and `<TASK_TMP>` replace absolute local paths in saved output. No test result or exit code was changed.
 Agent summaries are evidence of what the agent said, not independent proof of every claim.
 The write-up explicitly identifies the mismatch between Trial 3's actual command and its final answer.
+Trial 4 runs the exact inner wrapper, then prints its status with an outer `echo`; this is not proof that its whole tool call propagates failure.
 
 The task prompts used existing local dependencies. MCP servers and additional agents were disabled.
 Personal global instructions still loaded, so the trials do not measure the guide in isolation.
@@ -62,6 +68,12 @@ Repository source and official documentation supplied the reference material; th
 
 A fresh reviewer reproduced an unignored `.venv/` in a clean Python 3.11 clone.
 A separate verifier confirmed candidate FS-001: broad staging also picked up the generated environment and its test log.
-The final [v3 guide](CLAUDE-v3.md) adds a local Git exclude before environment creation.
+The [v3 guide](CLAUDE-v3.md) added a local Git exclude before environment creation; v4 preserves it.
 [venv-exclude-check.json](venv-exclude-check.json) records a fresh-clone check of the added command.
 The fork still changes only its root guide. The earlier snapshots preserve the exact files used in the trials.
+
+## Source-guidance follow-up
+
+The [source review](../../source-review.md) compares the assignment with the full Factory talk transcript and the complete Basis article.
+V4 makes module navigation actionable and makes the verified exit-preserving command the default full-suite check.
+Third-party transcript and slide caches stay in ignored local scratch space; they are not included in the submission.

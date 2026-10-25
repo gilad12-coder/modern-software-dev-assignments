@@ -56,7 +56,7 @@ There is no vendored dependency directory in the tracked tree.
 ## Part II: The File
 
 I chose `CLAUDE.md` because the trials used Claude Code, which loads that filename from the repository root.
-The final guide contains 487 whitespace-delimited words. It covers the project, architecture, exact commands, observed conventions, and guardrails.
+The final guide contains 463 whitespace-delimited words. It covers the project, architecture, exact commands, observed conventions, and guardrails.
 
 **Deliberate omissions:** I left out the full algorithm explanation, CLI option catalogue, installation marketing, and generic coding advice.
 The source and `--help` already provide those details. I also avoided inventing a lint command or upgrading the package's runtime code.
@@ -64,6 +64,11 @@ The source and `--help` already provide those details. I also avoided inventing 
 **Hardest inclusion decision:** I kept the failed legacy test command and the ignored multiline option.
 Both cost space, but both prevent believable mistakes when an agent follows the old documentation.
 I stated that the old Python 2.7–3.8 Travis matrix was not rerun. A Python 3.11 pass does not validate those versions.
+
+I also checked the guide against [Factory's agent-readiness talk](https://ai.engineer/talks/ShuJ_CN6zr4-making-codebases-agent-ready)
+and [Basis's article](https://www.getbasis.ai/blogs/how-we-made-our-monorepo-ergonomic-for-agents).
+Their guidance informed the actionable module directions, one current guide, and explicit verification steps.
+The [source review](source-review.md) records the full comparison, access limits, and engineering gaps outside this assignment's scope.
 
 ## Part III: Trying It Out
 
@@ -104,6 +109,17 @@ I then checked the exact final wrapper directly in Bash and zsh. It returned zer
 
 During independent review, a fresh clone exposed another setup trap: `.venv/` was not ignored by upstream.
 The trial checkout hid it through a local exclude. A separate reviewer reproduced accidental staging in a clean clone.
-The final [v3 guide](review-evidence/fsed/CLAUDE-v3.md) now adds that exclude before creating the environment.
+The [v3 guide](review-evidence/fsed/CLAUDE-v3.md) added that exclude before creating the environment.
 A [fresh-clone check](review-evidence/fsed/venv-exclude-check.json) confirms that generated environment files and the test log stay out of staging.
 The saved v1/v2 trial records remain unchanged.
+
+The source-guidance review prompted a final [v4 revision](review-evidence/fsed/CLAUDE-v4.md).
+It turns module descriptions into directions and makes the verified wrapper the only full-suite example.
+I repeated Task 1 in a fresh session with the same neutral prompt.
+This time the agent executed the full subshell wrapper, including its final `exit`, and immediately printed the returned status.
+All 16 tests passed with status zero. The negative discovery probe separately captured status one before printing its output.
+It changed no source files. [Trial 4 record](review-evidence/fsed/trial4.json).
+
+This is one observed successful use of the revised guide, not a controlled comparison or a guarantee of future adherence.
+The agent appended `echo` outside the subshell, so the outer tool call still ends successfully after printing a status.
+The direct Bash/zsh checks remain the evidence that the guide's exact wrapper propagates failure.
