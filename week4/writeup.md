@@ -1,128 +1,137 @@
-# Week 4 Write-up
+# Week 4 write-up
 
-**Repo chosen:** [wroberts/fsed](https://github.com/wroberts/fsed), a Python library and command-line tool for replacing many fixed strings in one pass.
+**Repository:** [Enthought Traits](https://github.com/enthought/traits), a Python library for observable typed attributes.
+**Fork:** [gilad12-coder/traits, agent-config branch](https://github.com/gilad12-coder/traits/tree/agent-config).
+**Configuration:** [fork-root CLAUDE.md](https://github.com/gilad12-coder/traits/blob/agent-config/CLAUDE.md), identical to [the submission copy](CLAUDE.md).
 
-**Fork:** [gilad12-coder/fsed](https://github.com/gilad12-coder/fsed/tree/agent-config).
-The file sits at the fork root on `agent-config`: [CLAUDE.md](https://github.com/gilad12-coder/fsed/blob/agent-config/CLAUDE.md).
-The submission copy is [week4/CLAUDE.md](CLAUDE.md).
+I chose a substantial Python library that I did not write. At the explored commit,
+[`a22bcba49a25ced116eef0613964742c6180346b`](https://github.com/enthought/traits/commit/a22bcba49a25ced116eef0613964742c6180346b),
+Traits contains 454 tracked files, including 333 Python files and a 5,886-line C extension.
+Those Python files total 65,211 lines, including tests, examples, and generated code. The repository had 464 stars on October 25, 2026.
 
-I chose a small legacy package instead of a large, active project. At review on October 25, 2026, `fsed` had 26 stars.
-Its default branch last changed on November 25, 2019. The explored commit was
-[`0227a62b0dd4ba64176d3e8394243fc8157296b5`](https://github.com/wroberts/fsed/commit/0227a62b0dd4ba64176d3e8394243fc8157296b5).
-It contains 24 tracked files and 824 lines of package implementation. Including tests and setup, its Python files total 1,492 lines.
-It has no `AGENTS.md` or `CLAUDE.md` at that commit. The assignment permits an independently chosen repository and sets no minimum size.
+Traits already has CI and documentation. Its gap is durable guidance for an agent crossing the Python/C boundary, finding distributed tests, and avoiding generated files.
+The checked tree contains no `AGENTS.md` or `CLAUDE.md`, and no tracked `.claude/`, `.codex/`, `.cursor/`, or `copilot-instructions` paths.
+The assignment sets no minimum repository size and permits an independently chosen repository.
 
 ## Part I: Exploration
 
-The exploration agent read `setup.py`, `setup.cfg`, `.travis.yml`, `MANIFEST.in`, the README, all four implementation modules, and both test modules.
-It then ran the commands below in an isolated environment. Source inspection identified likely traps; command results established which traps actually fail.
+An exploration agent inspected source, packaging, CI workflows, test helpers, and generated-file headers.
+I checked those findings against command output. The tested environment was macOS on Apple Silicon, CPython 3.11.9, and Apple Clang 21.
+[Evidence and exact commands](review-evidence/traits/README.md) include dependency versions, complete output, and exit codes.
 
-The checked environment was macOS, Python 3.11.9, and a UTF-8 locale. These commands run from the fork root:
+### Commands
+
+Run from the fork root:
 
 ```sh
-python3.11 -m venv .venv
-.venv/bin/python -m pip install pip==24.3.1 setuptools==75.3.0 wheel==0.45.1 build==1.2.2.post1 click==8.1.8
-.venv/bin/python -m pip install --no-build-isolation -e .
+printf '\n/.venv/\n/.mypy_cache/\n' >> .git/info/exclude
+uv venv --python 3.11.9 --seed .venv
+.venv/bin/python -m pip install -e '.[test,docs]' build
 ```
 
-| Area | Exact command and observed result |
-|---|---|
-| Full tests | `.venv/bin/python -m unittest discover -s fsed/tests -t . -v` — 16 tests pass: 11 trie tests and five replacement/CLI tests. |
-| Focused integration test | `.venv/bin/python -m unittest fsed.tests.test_fsed.TestFsed.test_end2end -v` — one test passes. It runs the CLI against the compressed corpus and compares its output with saved Perl and sed results. |
-| Build | `.venv/bin/python -m build --no-isolation` — builds `dist/fsed-0.5.4.tar.gz` and `dist/fsed-0.5.4-py2.py3-none-any.whl`. Existing setuptools deprecation warnings remain. |
-| Run | `.venv/bin/python -m fsed.fsed --help` — exits zero and lists CLI options. `setup.py` also installs the `fsed` console command. The integration test exercises replacement behavior. |
-| Lint | No linter or formatter is configured. `.venv/bin/python -m compileall -q fsed` passes, but this checks syntax only. |
-| Misleading legacy command | `.venv/bin/python setup.py test` — exits one with `invalid command 'test'` under the pinned setuptools. The old Travis command is obsolete in this environment. |
-| Wrong discovery root | `.venv/bin/python -m unittest discover -s fsed/tests` — exits one with two relative-import errors. Adding `-t .` finds the actual 16 tests. |
+This installs test/documentation extras and compiles `traits.ctraits`. I verified this setup in a clean clone, including Git cleanliness.
+An initial host-specific `python3.11` symlink broke standard venv creation; the checked `uv` recipe avoids that launcher problem.
 
-[Saved output and exit codes](review-evidence/fsed/README.md) support these results.
+| Purpose | Exact command | Observed result |
+|---|---|---|
+| Full source suite | `.venv/bin/python -m unittest discover -s traits -t . -v` | 1,628 tests; zero failures, errors, or skips; exit 0. |
+| Focused tests | `.venv/bin/python -m unittest traits.tests.test_integer -v` | 10 baseline tests; exit 0. |
+| Repository lint | `.venv/bin/python -m flake8` | Exit 0 with `flake8-ets` installed. |
+| Strict CI copyright check | `.venv/bin/python -m flake8 --select H102 --copyright-end-year current` | Exit 0. |
+| Package build | `.venv/bin/python -m build` | Builds the 7.2.0 source distribution and universal2 CPython 3.11 wheel; exit 0. |
+| Documentation build | `(cd docs && ../.venv/bin/python -m sphinx -b html -W source build)` | Builds HTML with warnings treated as errors; exit 0. |
+| Run the library | `.venv/bin/python -c 'from traits.api import HasTraits, Int; x = HasTraits(); x.add_trait("count", Int()); x.count = 2; assert x.count == 2; print(x.count)'` | Prints `2`; exit 0. Traits has no application server to start. |
 
-The main entry point is `main` in `fsed/fsed.py`. It detects the pattern format, builds a trie, and rewrites input streams.
-`fsed/ahocorasick.py` contains `TrieNode`, `Trie`, and `AhoCorasickTrie`, including suffix links, greedy replacement, and slower chart-based replacement.
-`fsed/utils.py` opens binary streams for regular files, compressed files, zip members, and standard input/output.
-`fsed/compat.py` defines Python 2/3 type aliases. Packaging uses `setup.py`, `setup.cfg`, `MANIFEST.in`, and `fsed/VERSION`.
+I also installed the built wheel with test extras into a separate environment.
+From outside the source checkout, `python -m unittest discover -v traits` passed all 1,628 tests.
+Import paths confirmed that this run used the installed wheel and its compiled extension.
+This checks upstream CI's distribution-testing approach separately from the editable install.
 
-The tests reveal conventions that a new agent could miss. They use `unittest.TestCase`, `test_` methods, native assertions, and relative imports.
-`CMStringIO` takes bytes and rewinds on context entry. Production code decodes file bytes before trie operations.
-The source retains `__future__` imports and Python 2/3 syntax. Word-boundary matching uses an internal NUL token and paired transforms.
+### Structure, conventions, and traps
 
-Two source details contradict plausible assumptions. The README describes `sed` as the default pattern format, but the code uses `auto`.
-Also, `main` sets `by_line = True` even when the caller selects `--across-lines`. The guide warns about both without changing unrelated runtime behavior.
+`traits/api.py` exposes public imports. `HasTraits` and its metaclass in `has_traits.py` connect declarations to validation and notifications.
+`trait_types.py` defines Python validators; `ctrait.py` extends the C-level machinery in handwritten `ctraits.c`.
+Modern observation uses `traits/observation/` for parsing, expressions, graphs, and event notifiers.
+Legacy listeners remain in `traits_listener.py` and `trait_notifiers.py`. Protocol adaptation lives in `traits/adaptation/`.
 
-Build output, `dist/`, `fsed.egg-info/`, virtual environments, and bytecode are generated.
-The compressed corpus and Perl/sed reference files are maintained fixtures, not disposable build output. Their README explains regeneration.
-There is no vendored dependency directory in the tracked tree.
+Tests use `unittest.TestCase`, `test_*` methods, and `self.assert*` assertions.
+They span several packages; running only `traits/tests/` misses observation, adaptation, and stub tests.
+`traits/testing/optional_dependencies.py` supplies skip decorators.
+Modern callback tests use the exception-handler stack in `traits.observation.api`; the handler in `traits.api` belongs to legacy notifications.
+Stub tests deliberately include expected mypy errors and check them through a unittest harness.
 
-## Part II: The File
+The code uses Enthought license headers and 79-column formatting. `pyproject.toml` configures Black/isort; CI runs Flake8 with `flake8-ets`.
+The PR template links public API changes to `.pyi` stubs, the API reference, and the user manual.
 
-I chose `CLAUDE.md` because the trials used Claude Code, which [reads that filename from the working directory and its parents](https://code.claude.com/docs/en/memory).
-The final guide contains 463 whitespace-delimited words. It covers the project, architecture, exact commands, observed conventions, and guardrails.
+An actual import before installation failed with `ModuleNotFoundError: traits.ctraits`; finding the Python package does not establish a working build.
+Upstream ignores compiled extensions and build output, but omits `.venv/`, which explains the local exclude.
+`setup.py` generates `traits/version.py`. The observation parser embeds generated code and a Lark runtime; its source is `_dsl_grammar.lark`.
+Historical pickle fixtures are maintained compatibility data and must not be regenerated casually.
 
-**Deliberate omissions:** I left out the full algorithm explanation, CLI option catalogue, installation marketing, and generic coding advice.
-The source and `--help` already provide those details. I also avoided inventing a lint command or upgrading the package's runtime code.
+## Part II: The file
 
-**Hardest inclusion decision:** I kept the failed legacy test command and the ignored multiline option.
-Both cost space, but both prevent believable mistakes when an agent follows the old documentation.
-I stated that the old Python 2.7–3.8 Travis matrix was not rerun. A Python 3.11 pass does not validate those versions.
+The final `CLAUDE.md` has 473 whitespace-delimited words. It covers the project, architecture, commands, conventions, and guardrails.
+I kept directions to authoritative files instead of copying implementation details.
+I omitted the complete API catalogue, release procedures, generic coding advice, and production infrastructure that this library does not need.
 
-I also checked the guide against [Factory's agent-readiness talk](https://ai.engineer/talks/ShuJ_CN6zr4-making-codebases-agent-ready)
-and [Basis's article](https://www.getbasis.ai/blogs/how-we-made-our-monorepo-ergonomic-for-agents).
-Their guidance informed the actionable module directions, one current guide, and explicit verification steps.
-I read the full talk transcript and key slides. X blocked access, so I used Basis's complete article on its own website.
+The hardest choice was keeping both the Python/C map and the modern/legacy observation distinction.
+Both prevent plausible edits in the wrong layer. The generated parser and historical fixtures also warrant explicit protection.
+Style details stay brief because Flake8 can enforce them.
 
-## Part III: Trying It Out
+The assignment's [AGENTS.md guidance](https://agents.md/), [HumanLayer article](https://www.hlyr.dev/blog/writing-a-good-claude-md),
+and [Claude Code best practices](https://code.claude.com/docs/en/best-practices) informed the short operating guide and runnable checks.
+I also reviewed the full transcript and key slides of [Factory's agent-readiness talk](https://ai.engineer/talks/ShuJ_CN6zr4-making-codebases-agent-ready)
+and [Basis's complete article](https://www.getbasis.ai/blogs/how-we-made-our-monorepo-ergonomic-for-agents).
+X blocked direct access to the linked post, so I used the author's article rather than claiming to read the thread.
+For Traits, these ideas translate into one current guide, directions to the right subsystem, executable checks, and protected generated files.
 
-Each task ran in a fresh, headless Claude Code 2.1.308 session with the guide at the fork root.
-The session records identify the model as `claude-opus-5-5`. The task prompts did not name the guide or supply its commands.
-The environment was already installed. Personal global instructions also loaded, so these trials do not isolate the guide's effect.
-The checkout also sits beneath the assignment's `week4/CLAUDE.md`, which could contribute parent instructions.
-The raw records do not list loaded instruction files. That parent's content during Trials 1–3 was not captured and remains unknown.
-During Trial 4, the parent and fork copies both matched v4.
+## Part III: Trying it out
 
-**Task 1:** “Run this repository’s full test suite and report whether it passes. Do not change source files. Report the exact command, test count, exit status, and any setup or discovery pitfall you notice.”
+Each trial used a fresh Claude Code 2.1.308 session with `claude-opus-5-5` at medium effort and the environment already installed.
+I requested `--safe-mode` and explicitly asked each session to read the checkout's `CLAUDE.md`.
+The transcripts verify those reads. They do not prove complete instruction isolation or automatic guide discovery.
+The task prompts supplied no test commands. These trials show observed use; there was no comparison against an agent without the guide.
 
-The agent used the documented discovery command and reported all 16 tests passing.
-It initially piped output through `tail` and tried `${PIPESTATUS[0]}`, which returned empty under zsh.
-It then reran the tests without that pipeline and captured exit zero. It also confirmed the missing-`-t .` import failure.
-It changed no source files. [Trial 1 record](review-evidence/fsed/trial1.json).
+### Task 1: Run the full test suite
 
-**Task 2:** “Add a small regression test showing that the CLI automatically detects TSV patterns and preserves a Unicode replacement. Exercise the actual CLI path and follow the existing test style. Run the relevant checks. Do not change production code or existing corpus fixtures. Do not commit or push. Report what you changed, exact check results, and any missing context that made the task harder.”
+I asked for the full suite, exact command, counts, exit status, and missing guide detail.
+The agent used the guide's discovery scope and reported 1,628 tests, zero failures, errors, or skips, and exit 0.
+It first omitted `-v`, then reran the documented verbose command to inspect results.
+Two Sphinx deprecation warnings interrupted result lines, so its initial count of lines ending in `... ok` was 1,626.
+It checked unittest's final summary and correctly reported 1,628. It changed no source files.
+[Trial 1 record](review-evidence/traits/trial1.json).
 
-The agent added `TestFsed.test_cli_auto_tsv_unicode` through the existing `click_command_runner` helper.
-It used temporary UTF-8 files, omitted `--pattern-format`, and asserted both exit zero and `a naïve ☺\n` output.
-It followed the existing `unittest` style and preserved relative imports and older Python syntax.
-A manual contrast produced unchanged text with forced `sed` format and replaced text with the automatic default.
+### Task 2: Add a small regression test
 
-The focused test passed; the full suite passed 17 tests. A separate direct run confirmed both results and captured their process exit codes.
-The helper reads output with the host's default encoding, so this trial establishes behavior on the checked UTF-8 host only.
-The trial changed no production code or corpus fixtures. Its [patch](review-evidence/fsed/trial2.patch) remains as evidence; the checkout was restored afterward.
-[Trial 2 record](review-evidence/fsed/trial2.json).
+I asked for one test showing that a rejected float assignment preserves an `Int` trait's existing value and sends no modern observation event.
+A subsequent valid assignment had to prove the observer remained attached.
 
-**One grounded improvement:** Task 1 showed that knowing the test command did not ensure reliable reporting.
-I added one command that saves the full output, captures `$?` before another command runs, and returns that status from a subshell.
-The [v1](review-evidence/fsed/CLAUDE-v1.md) and [v2](review-evidence/fsed/CLAUDE-v2.md) copies show the exact addition.
+The agent added `TestInt.test_rejected_float_preserves_value_and_does_not_notify` in `traits/tests/test_integer.py`.
+It reused the existing `A` fixture, started at `7`, attached `events.append` with `observe`, and rejected `23.0` with `TraitError`.
+It checked the unchanged integer and empty event list, then assigned `8` and checked the event's object, name, old value, and new value.
+Assertions stayed outside the callback, so no exception-handler override was needed.
 
-I repeated Task 1 in another fresh session. The agent saved the full log and printed the captured status, correctly reporting 16 passing tests.
-However, its executed command replaced the final `exit` with `echo`. Its final answer quoted the guide's stronger command instead.
-It also used a pipeline for the negative discovery probe and recognized that the printed zero belonged to `tail`.
-This was partial adoption, not proof that the agent always propagates failures correctly. [Trial 3 record](review-evidence/fsed/trial3.json).
+The focused module passed 11 tests. The full suite passed 1,629 tests. Flake8 passed with the repository plugin installed.
+The agent followed the existing unittest style and changed no production code or fixtures.
+It suggested more detail about formatter expectations and test placement.
+I kept that detail out of the root file because the local module and configuration already answer those questions.
 
-I then checked the exact final wrapper directly in Bash and zsh. It returned zero for the full suite and one for broken discovery in both shells.
-[Four checked cases](review-evidence/fsed/wrapper-checks.json) support the guide's command independently of the agent's summary.
+I saved the [21-line test addition](review-evidence/traits/trial2.patch) and restored the checkout.
+Applying the patch to a clean clone reproduced the focused test, all 1,629 tests, and Flake8 successfully.
+The fork's final change is the guide; the temporary test remains inspectable evidence.
+[Trial 2 record](review-evidence/traits/trial2.json).
 
-During independent review, a fresh clone exposed another setup trap: `.venv/` was not ignored by upstream.
-The trial checkout hid it through a local exclude. A separate reviewer reproduced accidental staging in a clean clone.
-The [v3 guide](review-evidence/fsed/CLAUDE-v3.md) added that exclude before creating the environment.
-A [fresh-clone check](review-evidence/fsed/venv-exclude-check.json) confirms that generated environment files and the test log stay out of staging.
-The saved v1/v2 trial records remain unchanged.
+### One grounded improvement
 
-The source-guidance review prompted a final [v4 revision](review-evidence/fsed/CLAUDE-v4.md).
-It turns module descriptions into directions and makes the verified wrapper the only full-suite example.
-I repeated Task 1 in a fresh session with the same neutral prompt.
-This time the agent executed the full subshell wrapper, including its final `exit`, and immediately printed the returned status.
-All 16 tests passed with status zero. The negative discovery probe separately captured status one before printing its output.
-It changed no source files. [Trial 4 record](review-evidence/fsed/trial4.json).
+Task 1 exposed a result-reporting problem. I added the checked baseline count and the two known Sphinx warnings,
+with an instruction to use unittest's summary and process status rather than count verbose lines.
+The [v1](review-evidence/traits/CLAUDE-v1.md) and [v2](review-evidence/traits/CLAUDE-v2.md) copies show that change.
 
-This is one observed successful use of the revised guide, not a controlled comparison or a guarantee of future adherence.
-The agent appended `echo` outside the subshell, so the outer tool call still ends successfully after printing a status.
-The direct Bash/zsh checks remain the evidence that the guide's exact wrapper propagates failure.
+I repeated Task 1 with the same prompt in a fresh session.
+The agent ran the documented verbose command once, reported 1,628 tests with zero skips and exit 0,
+and used the final summary while recognizing the documented warnings.
+It changed no source files. [Trial 3 record](review-evidence/traits/trial3.json).
+This is one successful use of the revision, not proof that every future agent will follow it.
+
+The checks cover macOS/Apple Silicon and Python 3.11.9. I did not run other CI platforms or Python versions,
+the environment without optional dependencies, or interactive GUI flows. The source guide changes no runtime behavior.

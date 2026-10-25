@@ -1,74 +1,44 @@
-# fsed
+# Working on Traits
 
-`fsed` 0.5.4 replaces many fixed strings in one pass with an Aho-Corasick trie.
-It is a Python library and Click CLI. Reviewed at upstream `0227a62`.
+Traits is a Python library for typed attributes, validation, defaults, and change notifications. It combines Python classes with the compiled `traits.ctraits` extension. It is not a web app; GUI support belongs to optional TraitsUI/Pyface dependencies.
 
-## Architecture
+## Find the right layer
 
-- For pattern detection and CLI behavior, start at `main` in `fsed/fsed.py`.
-  It builds the trie and rewrites files; `setup.py` exposes it as `fsed`.
-- For matching changes, inspect `TrieNode`, `Trie`, and `AhoCorasickTrie` in
-  `fsed/ahocorasick.py`. Keep suffix links, greedy/chart-based replacement,
-  and boundary transforms consistent.
-- Use `fsed/utils.py` for binary streams: normal files, gzip, xz, zip members,
-  and `-`. Keep Python 2/3 type aliases in `fsed/compat.py`.
-- Add regressions in `fsed/tests/`, alongside the existing trie or CLI tests.
-  Use `click_command_runner` for CLI behavior; keep relative imports.
-- For packaging changes, check `setup.py`, `setup.cfg`, `MANIFEST.in`, and
-  `fsed/VERSION`. Preserve the test corpus in source distributions.
+- Start at `traits/api.py` for public imports. Trace declarations through `has_traits.py` (`HasTraits`, metaclass), `trait_types.py` (validators), and `ctrait.py` into handwritten `ctraits.c` for accelerated behavior.
+- For modern `observe` behavior, use `traits/observation/`: `parsing.py`, observer expressions/graphs, and event notifiers. Legacy `on_trait_change` uses `traits_listener.py` and `trait_notifiers.py`.
+- Protocol conversion lives in `traits/adaptation/`. Test helpers live in `traits/testing/`. Tests span `traits/tests/`, subsystem `tests/` directories, and `traits/stubs_tests/`.
+- Public API changes also need corresponding `.pyi` stubs and documentation under `docs/source/traits_api_reference/` and `docs/source/traits_user_manual/`.
 
-## Commands
+## Set up and verify
 
-Run from the fork root. These commands were checked on Python 3.11.9.
-The old Python 2.7-3.8 Travis matrix was not rerun.
-Upstream does not ignore `.venv/`; the setup adds a local Git exclude.
+Traits requires CPython 3.10+ and a C compiler. This checked setup uses `uv` and Python 3.11.9. Run commands from the repository root.
 
 ```sh
-printf '/.venv/\n' >> "$(git rev-parse --git-path info/exclude)"
-python3.11 -m venv .venv
-.venv/bin/python -m pip install pip==24.3.1 setuptools==75.3.0 wheel==0.45.1 build==1.2.2.post1 click==8.1.8
-.venv/bin/python -m pip install --no-build-isolation -e .
+printf '\n/.venv/\n/.mypy_cache/\n' >> .git/info/exclude
+uv venv --python 3.11.9 --seed .venv
+.venv/bin/python -m pip install -e '.[test,docs]' build
+.venv/bin/python -m unittest discover -s traits -t . -v
+.venv/bin/python -m flake8
+.venv/bin/python -m build
+(cd docs && ../.venv/bin/python -m sphinx -b html -W source build)
 ```
 
-After changes under `fsed/`, run the full suite. Save its output and return its
-actual exit status; keep the final `exit` when reporting results:
+The editable install builds the C extension. Repeat it after C changes. `.venv/` is absent from upstream Git ignores, so keep the local exclude. Flake8 needs the `flake8-ets` plugin from the test extra; plain Flake8 alone misses repository checks.
+
+For a focused test, use the module name, for example `.venv/bin/python -m unittest traits.tests.test_integer -v`. The full discovery command includes observation, adaptation, and stub tests; `traits/tests/` alone does not. Upstream CI instead installs a distribution and discovers `traits` from an empty `testdir`.
+
+At baseline `a22bcba`, Python 3.11.9 with Sphinx 9.0.4 runs 1,628 tests with zero skips. Two `RemovedInSphinx11Warning` messages from `test_trait_documenter.py` interrupt verbose result lines. Use the final unittest summary and process exit status, not a count of `... ok` lines. New tests or different optional dependencies can change these counts.
+
+Run a library smoke check:
 
 ```sh
-(.venv/bin/python -m unittest discover -s fsed/tests -t . -v > .venv/test-results.log 2>&1; test_exit=$?; cat .venv/test-results.log; exit "$test_exit")
+.venv/bin/python -c 'from traits.api import HasTraits, Int; x = HasTraits(); x.add_trait("count", Int()); x.count = 2; assert x.count == 2; print(x.count)'
 ```
 
-The baseline has 16 tests. For a focused CLI/corpus check, packaging validation,
-syntax compilation, and CLI options, respectively:
+## Follow existing tests and protect generated files
 
-```sh
-.venv/bin/python -m unittest fsed.tests.test_fsed.TestFsed.test_end2end -v
-.venv/bin/python -m build --no-isolation
-.venv/bin/python -m compileall -q fsed
-.venv/bin/python -m fsed.fsed --help
-```
+Use `unittest.TestCase`, `test_*` methods, and `self.assert*` assertions. Reuse optional-dependency decorators from `traits/testing/optional_dependencies.py`. Modern observation tests that assert inside callbacks use `traits.observation.api.push_exception_handler(reraise_exceptions=True)` and register matching cleanup; the handler exported by `traits.api` belongs to the legacy stack.
 
-Packaging edits need the build check; it produces an sdist and wheel in `dist/`.
-No linter or formatter is configured. `compileall` checks syntax only.
+Keep the existing Enthought license header and 79-column style. Black/isort configuration is in `pyproject.toml`; required style checks are in `setup.cfg`. Stub examples contain expected mypy errors, so run their unittest harness rather than treating those examples as error-free programs.
 
-## Conventions
-
-- Extend existing `unittest.TestCase` classes with `test_` methods and
-  `self.assertEqual`/`self.assertRaises`.
-- Preserve Python 2/3 syntax, `__future__` imports, and four-space indentation.
-  Avoid annotations or f-strings during unrelated edits.
-- File and pattern streams contain bytes; decode using the selected encoding
-  before trie operations. `CMStringIO` fixtures take bytes and rewind on entry.
-- Word boundaries use an internal NUL token (`\x00`); preserve the paired
-  transform/untransform operations and distinguish greedy/slow behavior.
-
-## Guardrails
-
-- Keep `-t .` in test discovery; omitting it breaks relative imports.
-  The old Travis `setup.py test` fails with the pinned setuptools. Use unittest.
-- The README says format defaults to `sed`; the code defaults to `auto`.
-  `main` forces line-by-line processing even with `--across-lines`.
-  Do not promise multiline matching without changing and testing that implementation.
-- Do not hand-edit `build/`, `dist/`, `fsed.egg-info/`, `.venv/`, or `*.pyc`.
-  Keep the `.gz` corpus and Perl/sed reference files unchanged unless regenerating
-  fixtures. Follow `fsed/tests/README.rst` for regeneration commands.
-- Change `fsed/VERSION` only for an explicit release task.
+Do not hand-edit `traits/version.py`, compiled extensions, `build/`, `dist/`, or `docs/build/`. `setup.py` generates version metadata. `_generated_parser.py` embeds a generated parser and Lark runtime; edit `_dsl_grammar.lark` and follow its regeneration command instead. Preserve historical pickle fixtures under `traits/tests/test-data/`; they verify compatibility with older releases.

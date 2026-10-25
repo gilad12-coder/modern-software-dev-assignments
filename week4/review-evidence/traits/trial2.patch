@@ -1,0 +1,32 @@
+diff --git a/traits/tests/test_integer.py b/traits/tests/test_integer.py
+index 0d5c8e9..3268317 100644
+--- a/traits/tests/test_integer.py
++++ b/traits/tests/test_integer.py
+@@ -90,6 +90,27 @@ class TestInt(unittest.TestCase):
+         with self.assertRaises(TraitError):
+             a.integral = decimal.Decimal(23)
+ 
++    def test_rejected_float_preserves_value_and_does_not_notify(self):
++        a = A(integral=7)
++        events = []
++        a.observe(events.append, "integral")
++
++        with self.assertRaises(TraitError):
++            a.integral = 23.0
++
++        self.assertEqual(a.integral, 7)
++        self.assertIs(type(a.integral), int)
++        self.assertEqual(events, [])
++
++        # The observer is still attached after the failed assignment.
++        a.integral = 8
++        self.assertEqual(len(events), 1)
++        event, = events
++        self.assertIs(event.object, a)
++        self.assertEqual(event.name, "integral")
++        self.assertEqual(event.old, 7)
++        self.assertEqual(event.new, 8)
++
+     def test_rejects_string(self):
+         a = A()
+         with self.assertRaises(TraitError):

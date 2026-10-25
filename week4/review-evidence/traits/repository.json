@@ -1,0 +1,12 @@
+{
+  "upstream": "enthought/traits",
+  "base": "a22bcba49a25ced116eef0613964742c6180346b",
+  "tracked_files": 454,
+  "python_files": 333,
+  "python_lines": 65211,
+  "agent_guides": [],
+  "agent_config_paths": [],
+  "stars": 464,
+  "checked_date": "2026-10-25",
+  "fork": "gilad12-coder/traits"
+}

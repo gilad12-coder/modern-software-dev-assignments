@@ -1,7 +1,0 @@
-test_cli_auto_tsv_unicode (fsed.tests.test_fsed.TestFsed.test_cli_auto_tsv_unicode)
-Checks that the CLI detects a TSV pattern file without ... ok
-
-----------------------------------------------------------------------
-Ran 1 test in 0.001s
-
-OK
