@@ -1,59 +1,66 @@
-# Day.js
+# fsed
 
-Immutable date library with a Moment.js-compatible API. The core bundle has a hard
-2.99 KB gzip budget, so most features live in plugins and locales, not the core.
+`fsed` 0.5.4 replaces many fixed strings in one pass with an Aho-Corasick trie.
+It is a Python library and Click CLI. Reviewed at upstream `0227a62`.
 
 ## Architecture
 
-- `src/index.js`: the `Dayjs` class and the `dayjs()` factory. Instance state is in
-  `$`-prefixed fields (`$d` native Date, `$y $M $D $W $H $m $s $ms`, `$L` locale,
-  `$u` UTC flag, `$x` plugin extras). Unit names and regexes are in `src/constant.js`
-  (`C.M`, `C.D`, ...). Shared helpers are in `src/utils.js`.
-- `src/plugin/<name>/index.js`: one folder per plugin, each `export default (o, c, d) => {}`
-  (option, `Dayjs` class, `dayjs` factory). Plugins patch `c.prototype` and often wrap the
-  old method (`const oldX = proto.x; proto.x = function () { ... oldX.bind(this)(...) }`).
-- `src/locale/<code>.js`: one file per locale. First line must be `// Name [code]`. It
-  imports `dayjs` from `'dayjs'` (not `'../index'`), calls `dayjs.locale(locale, null, true)`,
-  and exports `locale`. `name` must equal the lowercase file name. Exception: `en.js` is
-  built into the core and must stay import-free.
-- `types/`: hand-written `.d.ts` files. Every plugin needs `types/plugin/<name>.d.ts`.
-- `test/`: Jest tests. `test/plugin/<name>.test.js`, `test/locale/<code>.test.js`.
-- `build/`: Rollup scripts that emit UMD files to the repo root, and `esm/`.
+- `fsed/fsed.py`: Click entry point `main`; pattern detection, trie construction,
+  and file rewriting. `setup.py` exposes it as the `fsed` command.
+- `fsed/ahocorasick.py`: `TrieNode`, `Trie`, and `AhoCorasickTrie`; suffix links,
+  greedy replacement, the slower chart-based replacement, and boundary transforms.
+- `fsed/utils.py`: binary streams for normal files, gzip, xz, zip members, and `-`.
+  `fsed/compat.py` holds the Python 2/3 type aliases.
+- `fsed/tests/`: two `unittest.TestCase` modules and compressed reference fixtures.
+  Tests import their parent package with relative imports.
+- `setup.py`, `setup.cfg`, `MANIFEST.in`, and `fsed/VERSION` define packaging.
+  `MANIFEST.in` includes the test corpus in source distributions.
 
 ## Commands
 
-- Install: `npm ci` (do not use `npm install`: it rewrites `package-lock.json`).
-- Lint: `npm run lint`. Single file: `npx eslint src/plugin/isToday/index.js`
-- Full tests: `TZ=UTC npm test`. It runs the tz suites in several zones, then all of Jest
-  with a 100% line coverage threshold. Without `TZ=UTC`, `npm test` fails 6 tests on a
-  US-timezone machine (dayOfYear, localizedFormat, timezone). CI runs in UTC.
-  It runs Jest 9 times, so `| tail` shows only the last run. Check the exit code instead:
-  `TZ=UTC npm test > /tmp/dayjs-test.log 2>&1; echo $?`
-- One test file: `TZ=UTC npx jest test/plugin/isToday.test.js --coverage=false`
-- Build: `NODE_OPTIONS=--openssl-legacy-provider npm run build`. The `size` step crashes on
-  Node 17+ with `ERR_OSSL_EVP_UNSUPPORTED` without that flag. ESM: `npm run babel`.
+Run from the fork root. The following environment was checked on Python 3.11.9.
+The old Python 2.7-3.8 Travis matrix was not rerun.
+
+```sh
+python3.11 -m venv .venv
+.venv/bin/python -m pip install pip==24.3.1 setuptools==75.3.0 wheel==0.45.1 build==1.2.2.post1 click==8.1.8
+.venv/bin/python -m pip install --no-build-isolation -e .
+.venv/bin/python -m unittest discover -s fsed/tests -t . -v
+.venv/bin/python -m unittest fsed.tests.test_fsed.TestFsed.test_end2end -v
+.venv/bin/python -m build --no-isolation
+.venv/bin/python -m fsed.fsed --help
+```
+
+The full suite has 16 tests at the baseline. Build produces an sdist and wheel in
+`dist/`. No linter or formatter is configured; `.venv/bin/python -m compileall -q fsed`
+checks syntax only. Do not describe it as a lint pass.
+
+For a test report, save the full output and preserve the exit code in Bash or zsh:
+
+```sh
+(.venv/bin/python -m unittest discover -s fsed/tests -t . -v > .venv/test-results.log 2>&1; test_exit=$?; cat .venv/test-results.log; exit "$test_exit")
+```
 
 ## Conventions
 
-- ESLint airbnb-base with no semicolons and no trailing commas. Use `function () {}` (not
-  arrows) for prototype methods, because they need `this`.
-- Methods never mutate: return `this.clone()` or a new instance. `badMutable` is the one
-  intended exception.
-- Tests import from `../../src` and `../../src/plugin/<name>`, call `dayjs.extend(...)` at
-  the top, and wrap time-dependent tests in `MockDate.set()` / `MockDate.reset()`. Many
-  tests compare against `moment` output, e.g. `expect(d.format()).toBe(moment(...).format())`.
-- Any new `src/` line needs a test, or the 100% coverage gate fails `npm test`.
-- New plugin = `src/plugin/<name>/index.js` + `types/plugin/<name>.d.ts` + a test file.
-  `test/plugin/declarations.test.js` fails if the `.d.ts` is missing.
-- Commit messages use semantic-release prefixes: `fix:`, `feat:`, `fix(plugin): ...`.
-  PRs target `dev`. `master` is release-only.
+- Extend the existing `unittest.TestCase` classes with `test_` methods and
+  `self.assertEqual`/`self.assertRaises`. Keep relative imports in test modules.
+- Preserve the existing Python 2/3 syntax, `__future__` imports, and four-space
+  indentation. Do not introduce annotations or f-strings during an unrelated edit.
+- Pattern and file streams contain bytes; decode using the selected encoding before
+  passing text to the trie. `CMStringIO` test fixtures take bytes and rewind on entry.
+- Word boundaries use an internal NUL token (`\x00`), not Python regex matching.
+  Keep the transform/untransform pair and greedy/slow behavior distinct.
 
 ## Guardrails
 
-- Do not edit build output: `dayjs.min.js`, `index.d.ts`, `locale/`, `plugin/`, `esm/`,
-  `locale.json` (root level, gitignored). Edit `src/` and `types/` instead. Note that
-  root `locale/` and `plugin/` are not `src/locale/` and `src/plugin/`.
-- Do not edit `CHANGELOG.md`. semantic-release writes it.
-- Keep core changes small. Check with `NODE_OPTIONS=--openssl-legacy-provider npm run size`.
-- `docs/` holds translated READMEs only. API docs are on day.js.org, not in this repo.
-- Do not run `npm run sauce` or `npm run test:sauce`: they need Sauce Labs credentials.
+- Use the explicit test command above. Omitting `-t .` breaks relative imports.
+  `setup.py test` from the old Travis workflow fails with the pinned setuptools;
+  the standard-library runner exercises the existing tests without Nose.
+- The README says pattern format defaults to `sed`; the code defaults to `auto`.
+  `main` also forces line-by-line processing even with `--across-lines`.
+  Do not promise multiline matching without changing and testing that implementation.
+- Do not hand-edit `build/`, `dist/`, `fsed.egg-info/`, `.venv/`, or `*.pyc`.
+  Keep the `.gz` corpus and Perl/sed reference files in `fsed/tests/` unchanged
+  unless fixture regeneration is the task. The commands in its README regenerate data.
+- Keep `fsed/VERSION` at 0.5.4 for ordinary changes. There is no release task here.

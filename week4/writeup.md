@@ -1,76 +1,103 @@
 # Week 4 Write-up
 
-**Repo chosen** and link to your fork:
-> [iamkun/dayjs](https://github.com/iamkun/dayjs), a small immutable date library with a Moment.js-style API.
-> Fork: https://github.com/gilad12-coder/dayjs. The file is on branch
-> [`agent-config`](https://github.com/gilad12-coder/dayjs/tree/agent-config)
-> ([CLAUDE.md](https://github.com/gilad12-coder/dayjs/blob/agent-config/CLAUDE.md), PR inside the fork:
-> https://github.com/gilad12-coder/dayjs/pull/1). Explored at upstream commit `436bde0` on `dev`.
+**Repo chosen:** [wroberts/fsed](https://github.com/wroberts/fsed), a Python library and command-line tool for replacing many fixed strings in one pass.
 
-**File you wrote** (`AGENTS.md` or `CLAUDE.md`):
-> `CLAUDE.md` (copy in [`week4/CLAUDE.md`](CLAUDE.md)). I chose `CLAUDE.md` because I tested it with
-> Claude Code, which loads `CLAUDE.md` on its own.
+**Fork:** [gilad12-coder/fsed](https://github.com/gilad12-coder/fsed/tree/agent-config).
+The file sits at the fork root on `agent-config`: [CLAUDE.md](https://github.com/gilad12-coder/fsed/blob/agent-config/CLAUDE.md).
+The submission copy is [week4/CLAUDE.md](CLAUDE.md).
 
+I chose a small legacy package instead of a large, active project. At review on October 25, 2026, `fsed` had 26 stars.
+Its default branch last changed on November 25, 2019. The explored commit was
+[`0227a62b0dd4ba64176d3e8394243fc8157296b5`](https://github.com/wroberts/fsed/commit/0227a62b0dd4ba64176d3e8394243fc8157296b5).
+It contains 24 tracked files and 824 lines of package implementation. Including tests and setup, its Python files total 1,492 lines.
+It has no `AGENTS.md` or `CLAUDE.md` at that commit. The assignment permits an independently chosen repository and sets no minimum size.
 
 ## Part I: Exploration
 
-All commands below were run on macOS, Node 22.22.0, npm, machine timezone America/Los_Angeles.
+The exploration agent read `setup.py`, `setup.cfg`, `.travis.yml`, `MANIFEST.in`, the README, all four implementation modules, and both test modules.
+It then ran the commands below in an isolated environment. Source inspection identified likely traps; command results established which traps actually fail.
 
-| | Finding |
+The checked environment was macOS, Python 3.11.9, and a UTF-8 locale. These commands run from the fork root:
+
+```sh
+python3.11 -m venv .venv
+.venv/bin/python -m pip install pip==24.3.1 setuptools==75.3.0 wheel==0.45.1 build==1.2.2.post1 click==8.1.8
+.venv/bin/python -m pip install --no-build-isolation -e .
+```
+
+| Area | Exact command and observed result |
 |---|---|
-| Build / run | `npm ci` installs (9 s). `npm install` rewrites `package-lock.json` (+871/-447 lines), so `npm ci` is the right command. `npm run build` runs `build/index.js` (Rollup + terser, UMD output to the repo root) and then `npm run size`. On Node 22 the `size` step crashes with `ERR_OSSL_EVP_UNSUPPORTED`; `NODE_OPTIONS=--openssl-legacy-provider npm run build` works (2.79 KB of the 2.99 KB limit). The release workflow sets the same flag. `npm run babel` builds `esm/`. There is nothing to "run": it is a library. |
-| Test | `npm test` runs Jest 9 times: `test/timezone.test.js` in 4 zones, `test/plugin/timezone.test.js` in 4 zones, then the full suite with a 100% **line** coverage threshold. The last run uses the machine's own timezone. In America/Los_Angeles it fails 6 tests (`dayOfYear`, `localizedFormat`, `timezone` plugin). `TZ=UTC npm test` passes: 93 suites, 794 tests. CI runs on ubuntu (UTC), so CI does not see this. One file: `TZ=UTC npx jest test/plugin/isToday.test.js --coverage=false`. |
-| Lint / format | `npm run lint` = `eslint src/* test/* build/*` (ESLint 4, airbnb-base, no semicolons, no trailing commas). One file: `npx eslint <path>`. `npm run prettier` only formats `docs/**/*.md`, not code. A `pre-commit` hook runs lint. |
-| Key directories and entry points | `src/index.js` (the `Dayjs` class and `dayjs()` factory, state in `$d $y $M $D ... $L $u $x` fields), `src/constant.js`, `src/utils.js`; `src/plugin/<name>/index.js` (37 plugins); `src/locale/<code>.js` (143 locales); `types/` (hand-written `.d.ts`); `test/` mirrors `src/`; `build/` (Rollup scripts). |
-| Unstated conventions | Plugin signature `export default (o, c, d) => {}` (option, class, factory); plugins patch `c.prototype` and wrap the old method. Prototype methods use `function () {}` because they need `this`. Methods return clones (immutability); `badMutable` is the one exception. Locales import from `'dayjs'`, not a relative path; `test/__mocks__/dayjs.js` maps that to `src/` in Jest. A locale's first line must be `// Name [code]` and `name` must match the file name (`test/locale/keys.test.js` checks this). Every plugin needs `types/plugin/<name>.d.ts` (`test/plugin/declarations.test.js` checks this). Tests use `MockDate` and compare with `moment` output. Semantic commit prefixes; PRs go to `dev`, `master` is release-only. |
-| Off-limits (generated, vendored) | Build output at the root, all gitignored: `dayjs.min.js`, `index.d.ts`, `locale/`, `plugin/`, `esm/`, `locale.json`. Root `plugin/` and `locale/` look like source but are built copies of `src/plugin/` and `src/locale/`. `CHANGELOG.md` is written by semantic-release. `patches/` is a patch-package fix for the release tool. `npm run sauce` needs Sauce Labs credentials. |
+| Full tests | `.venv/bin/python -m unittest discover -s fsed/tests -t . -v` — 16 tests pass: 11 trie tests and five replacement/CLI tests. |
+| Focused integration test | `.venv/bin/python -m unittest fsed.tests.test_fsed.TestFsed.test_end2end -v` — one test passes. It runs the CLI against the compressed corpus and compares its output with saved Perl and sed results. |
+| Build | `.venv/bin/python -m build --no-isolation` — builds `dist/fsed-0.5.4.tar.gz` and `dist/fsed-0.5.4-py2.py3-none-any.whl`. Existing setuptools deprecation warnings remain. |
+| Run | `.venv/bin/python -m fsed.fsed --help` — exits zero and lists CLI options. `setup.py` also installs the `fsed` console command. The integration test exercises replacement behavior. |
+| Lint | No linter or formatter is configured. `.venv/bin/python -m compileall -q fsed` passes, but this checks syntax only. |
+| Misleading legacy command | `.venv/bin/python setup.py test` — exits one with `invalid command 'test'` under the pinned setuptools. The old Travis command is obsolete in this environment. |
+| Wrong discovery root | `.venv/bin/python -m unittest discover -s fsed/tests` — exits one with two relative-import errors. Adding `-t .` finds the actual 16 tests. |
 
-**How you figured it out**: what you asked the agent, what you had to read yourself:
-> I used a coding agent. I asked it to read `package.json`, the CI workflows (`.github/workflows/*.yml`),
-> `.gitignore`, `.npmignore`, `.eslintrc.json`, `babel.config.js`, `build/*.js`, `CONTRIBUTING.md`, and a
-> few sample plugins, locales and tests, and then to run every command for real. The two most useful facts
-> did not come from any file. They came from running commands: `npm test` fails in a US timezone, and
-> `npm run size` crashes on Node 22. `npm install` changing the lockfile was also found by running it.
-> I checked the conventions by hand with greps (for example, every locale except `en.js` imports `'dayjs'`
-> and calls `dayjs.locale(locale, null, true)`), and the `__mocks__` trick by reading `test/__mocks__/dayjs.js`.
+[Saved output and exit codes](review-evidence/fsed/README.md) support these results.
 
+The main entry point is `main` in `fsed/fsed.py`. It detects the pattern format, builds a trie, and rewrites input streams.
+`fsed/ahocorasick.py` contains `TrieNode`, `Trie`, and `AhoCorasickTrie`, including suffix links, greedy replacement, and slower chart-based replacement.
+`fsed/utils.py` opens binary streams for regular files, compressed files, zip members, and standard input/output.
+`fsed/compat.py` defines Python 2/3 type aliases. Packaging uses `setup.py`, `setup.cfg`, `MANIFEST.in`, and `fsed/VERSION`.
+
+The tests reveal conventions that a new agent could miss. They use `unittest.TestCase`, `test_` methods, native assertions, and relative imports.
+`CMStringIO` takes bytes and rewinds on context entry. Production code decodes file bytes before trie operations.
+The source retains `__future__` imports and Python 2/3 syntax. Word-boundary matching uses an internal NUL token and paired transforms.
+
+Two source details contradict plausible assumptions. The README describes `sed` as the default pattern format, but the code uses `auto`.
+Also, `main` sets `by_line = True` even when the caller selects `--across-lines`. The guide warns about both without changing unrelated runtime behavior.
+
+Build output, `dist/`, `fsed.egg-info/`, virtual environments, and bytecode are generated.
+The compressed corpus and Perl/sed reference files are maintained fixtures, not disposable build output. Their README explains regeneration.
+There is no vendored dependency directory in the tracked tree.
 
 ## Part II: The File
 
-**Anything you deliberately left out**, and why:
-> - The public API (`format`, `add`, `diff`, ...) and plugin usage examples. They are in the README and on
->   day.js.org, and a model already knows Day.js well.
-> - The list of 37 plugins and 143 locales. `ls src/plugin` gives it, and it would cost context in every session.
-> - Generic advice ("write tests", "keep functions small"). The quality bar says this is padding.
-> - The Sauce Labs / Karma browser setup and the release process. An agent should not run them, so one
->   guardrail line is enough.
-> - Contribution etiquette from `CONTRIBUTING.md` (issue search, "English please"). It is for humans filing issues.
+I chose `CLAUDE.md` because the trials used Claude Code, which loads that filename from the repository root.
+The final guide contains 468 whitespace-delimited words. It covers the project, architecture, exact commands, observed conventions, and guardrails.
 
-**The hardest call** on what to include:
-> The `$`-prefixed instance fields (`$d`, `$y`, `$L`, `$u`, `$x`). They look like internal detail that an
-> agent can find by reading `src/index.js`, which argues for leaving them out. But 14 of the 37 plugins
-> read or write them, and without them an agent will call public getters inside plugins or invent new
-> fields. I kept them as one line. I also decided to say "`TZ=UTC npm test`" and explain why, instead
-> of just "`npm test`". The explanation costs two lines, but without it an agent on a US machine sees 6
-> failures and starts to "fix" correct code.
+**Deliberate omissions:** I left out the full algorithm explanation, CLI option catalogue, installation marketing, and generic coding advice.
+The source and `--help` already provide those details. I also avoided inventing a lint command or upgrading the package's runtime code.
 
+**Hardest inclusion decision:** I kept the failed legacy test command and the ignored multiline option.
+Both cost space, but both prevent believable mistakes when an agent follows the old documentation.
+I stated that the old Python 2.7–3.8 Travis matrix was not rerun. A Python 3.11 pass does not validate those versions.
 
 ## Part III: Trying It Out
 
-I ran each task in a fresh, headless Claude Code session (`claude -p --setting-sources project
---model sonnet`) from the fork root, with the file in place and no hint about it in the prompt. My
-personal global instruction file was also loaded (I could not turn it off without losing login), so the
-sessions had some extra context that is not part of this file.
+Each task ran in a fresh, headless Claude Code 2.1.308 session with the guide at the fork root.
+The session records identify the model as `claude-opus-5-5`. The task prompts did not name the guide or supply its commands.
+The environment was already installed. Personal global instructions also loaded, so these trials do not isolate the guide's effect.
 
-| # | Task | Did the agent use your commands and conventions? |
-|---|---|---|
-| 1 | "Run this repo's test suite and tell me whether it passes. Do not change any files." | Yes. Its first and only command was `TZ=UTC npm test 2>&1 \| tail -60`, taken from the file. It reported 93/93 suites and 794/794 tests, and correctly said only line coverage is gated. But because of `tail -60` it saw only the last of the 9 Jest runs, and it said itself that it could not confirm the earlier per-timezone runs. |
-| 2 | "Add a small new plugin, isWeekend, that adds an .isWeekend() method returning true on Saturday or Sunday. Make it ready for a PR: lint and tests must pass. Do not commit or push." | Yes, in 3 tool calls. It read `isToday` as a template, then created exactly the three files the file lists: `src/plugin/isWeekend/index.js` (`(o, c) =>` signature, `function ()` on `c.prototype`), `types/plugin/isWeekend.d.ts`, and `test/plugin/isWeekend.test.js` (imports from `../../src`, `dayjs.extend` at the top). It ran the single-file lint command form (`npx eslint <files>`) and then `TZ=UTC npm test`: 94 suites, 796 tests, coverage gate met. It did not touch the root `plugin/` build folder, which existed from my earlier build. It skipped the size check and said why: the change is a plugin, not core, which matches the guardrail. It did not use `MockDate`, which was right, because the test uses fixed dates. I checked `npm run lint` afterwards: it passed. I deleted the change after the trial. |
+**Task 1:** “Run this repository’s full test suite and report whether it passes. Do not change source files. Report the exact command, test count, exit status, and any setup or discovery pitfall you notice.”
 
-**One thing you'd change** about the file after watching it get used:
-> In task 1 the agent piped `npm test` through `tail`, so it could only judge the last of the 9 Jest runs.
-> The script chains the runs with `&&`, so a failure in an early per-timezone run stops it, and the tail
-> then shows partial output that is easy to misread. I added two lines to the file: `npm test` runs Jest
-> 9 times, so check the exit code, with the exact command `TZ=UTC npm test > /tmp/dayjs-test.log 2>&1; echo $?`.
-> I ran task 1 again with the new file. The agent used that exact command, reported "exited with code 0",
-> and based its answer on the exit code. This change is the second commit on the fork branch.
+The agent used the documented discovery command and reported all 16 tests passing.
+It initially piped output through `tail` and tried `${PIPESTATUS[0]}`, which returned empty under zsh.
+It then reran the tests without that pipeline and captured exit zero. It also confirmed the missing-`-t .` import failure.
+It changed no source files. [Trial 1 record](review-evidence/fsed/trial1.json).
+
+**Task 2:** “Add a small regression test showing that the CLI automatically detects TSV patterns and preserves a Unicode replacement. Exercise the actual CLI path and follow the existing test style. Run the relevant checks. Do not change production code or existing corpus fixtures. Do not commit or push. Report what you changed, exact check results, and any missing context that made the task harder.”
+
+The agent added `TestFsed.test_cli_auto_tsv_unicode` through the existing `click_command_runner` helper.
+It used temporary UTF-8 files, omitted `--pattern-format`, and asserted both exit zero and `a naïve ☺\n` output.
+It followed the existing `unittest` style and preserved relative imports and older Python syntax.
+A manual contrast produced unchanged text with forced `sed` format and replaced text with the automatic default.
+
+The focused test passed; the full suite passed 17 tests. A separate direct run confirmed both results and captured their process exit codes.
+The helper reads output with the host's default encoding, so this trial establishes behavior on the checked UTF-8 host only.
+The trial changed no production code or corpus fixtures. Its [patch](review-evidence/fsed/trial2.patch) remains as evidence; the checkout was restored afterward.
+[Trial 2 record](review-evidence/fsed/trial2.json).
+
+**One grounded improvement:** Task 1 showed that knowing the test command did not ensure reliable reporting.
+I added one command that saves the full output, captures `$?` before another command runs, and returns that status from a subshell.
+The [v1](review-evidence/fsed/CLAUDE-v1.md) and [v2](review-evidence/fsed/CLAUDE-v2.md) copies show the exact addition.
+
+I repeated Task 1 in another fresh session. The agent saved the full log and printed the captured status, correctly reporting 16 passing tests.
+However, its executed command replaced the final `exit` with `echo`. Its final answer quoted the guide's stronger command instead.
+It also used a pipeline for the negative discovery probe and recognized that the printed zero belonged to `tail`.
+This was partial adoption, not proof that the agent always propagates failures correctly. [Trial 3 record](review-evidence/fsed/trial3.json).
+
+I then checked the exact final wrapper directly in Bash and zsh. It returned zero for the full suite and one for broken discovery in both shells.
+[Four checked cases](review-evidence/fsed/wrapper-checks.json) support the guide's command independently of the agent's summary.

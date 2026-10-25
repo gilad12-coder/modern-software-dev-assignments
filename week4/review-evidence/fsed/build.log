@@ -1,0 +1,158 @@
+* Getting build dependencies for sdist...
+running egg_info
+writing fsed.egg-info/PKG-INFO
+writing dependency_links to fsed.egg-info/dependency_links.txt
+writing entry points to fsed.egg-info/entry_points.txt
+writing requirements to fsed.egg-info/requires.txt
+writing top-level names to fsed.egg-info/top_level.txt
+reading manifest file 'fsed.egg-info/SOURCES.txt'
+reading manifest template 'MANIFEST.in'
+adding license file 'LICENSE.rst'
+writing manifest file 'fsed.egg-info/SOURCES.txt'
+WARNING Unknown distribution option: 'test_suite'
+WARNING Unknown distribution option: 'tests_require'
+* Building sdist...
+running sdist
+running egg_info
+writing fsed.egg-info/PKG-INFO
+writing dependency_links to fsed.egg-info/dependency_links.txt
+writing entry points to fsed.egg-info/entry_points.txt
+writing requirements to fsed.egg-info/requires.txt
+writing top-level names to fsed.egg-info/top_level.txt
+reading manifest file 'fsed.egg-info/SOURCES.txt'
+reading manifest template 'MANIFEST.in'
+adding license file 'LICENSE.rst'
+writing manifest file 'fsed.egg-info/SOURCES.txt'
+running check
+creating fsed-0.5.4
+creating fsed-0.5.4/fsed
+creating fsed-0.5.4/fsed.egg-info
+creating fsed-0.5.4/fsed/tests
+copying files to fsed-0.5.4...
+copying LICENSE.rst -> fsed-0.5.4
+copying MANIFEST.in -> fsed-0.5.4
+copying README.rst -> fsed-0.5.4
+copying setup.cfg -> fsed-0.5.4
+copying setup.py -> fsed-0.5.4
+copying fsed/VERSION -> fsed-0.5.4/fsed
+copying fsed/__init__.py -> fsed-0.5.4/fsed
+copying fsed/ahocorasick.py -> fsed-0.5.4/fsed
+copying fsed/compat.py -> fsed-0.5.4/fsed
+copying fsed/fsed.py -> fsed-0.5.4/fsed
+copying fsed/utils.py -> fsed-0.5.4/fsed
+copying fsed.egg-info/PKG-INFO -> fsed-0.5.4/fsed.egg-info
+copying fsed.egg-info/SOURCES.txt -> fsed-0.5.4/fsed.egg-info
+copying fsed.egg-info/dependency_links.txt -> fsed-0.5.4/fsed.egg-info
+copying fsed.egg-info/entry_points.txt -> fsed-0.5.4/fsed.egg-info
+copying fsed.egg-info/requires.txt -> fsed-0.5.4/fsed.egg-info
+copying fsed.egg-info/top_level.txt -> fsed-0.5.4/fsed.egg-info
+copying fsed/tests/README.rst -> fsed-0.5.4/fsed/tests
+copying fsed/tests/__init__.py -> fsed-0.5.4/fsed/tests
+copying fsed/tests/fsed-testinput.utf8.txt.gz -> fsed-0.5.4/fsed/tests
+copying fsed/tests/fsed-testpats.tsv -> fsed-0.5.4/fsed/tests
+copying fsed/tests/fsed-testpats.utf8.pl -> fsed-0.5.4/fsed/tests
+copying fsed/tests/fsed-testpats.wb.bsd.utf8.sed -> fsed-0.5.4/fsed/tests
+copying fsed/tests/fsed-testpats.wb.sed -> fsed-0.5.4/fsed/tests
+copying fsed/tests/perl-output.utf8.txt.gz -> fsed-0.5.4/fsed/tests
+copying fsed/tests/sed-output.utf8.txt.gz -> fsed-0.5.4/fsed/tests
+copying fsed/tests/test_ahocorasick.py -> fsed-0.5.4/fsed/tests
+copying fsed/tests/test_fsed.py -> fsed-0.5.4/fsed/tests
+copying fsed.egg-info/SOURCES.txt -> fsed-0.5.4/fsed.egg-info
+Writing fsed-0.5.4/setup.cfg
+Creating tar archive
+removing 'fsed-0.5.4' (and everything under it)
+WARNING Unknown distribution option: 'test_suite'
+WARNING Unknown distribution option: 'tests_require'
+* Building wheel from sdist
+* Getting build dependencies for wheel...
+running egg_info
+writing fsed.egg-info/PKG-INFO
+writing dependency_links to fsed.egg-info/dependency_links.txt
+writing entry points to fsed.egg-info/entry_points.txt
+writing requirements to fsed.egg-info/requires.txt
+writing top-level names to fsed.egg-info/top_level.txt
+reading manifest file 'fsed.egg-info/SOURCES.txt'
+reading manifest template 'MANIFEST.in'
+adding license file 'LICENSE.rst'
+writing manifest file 'fsed.egg-info/SOURCES.txt'
+WARNING Unknown distribution option: 'test_suite'
+WARNING Unknown distribution option: 'tests_require'
+* Building wheel...
+running bdist_wheel
+running build
+running build_py
+creating build/lib/fsed
+copying fsed/compat.py -> build/lib/fsed
+copying fsed/ahocorasick.py -> build/lib/fsed
+copying fsed/__init__.py -> build/lib/fsed
+copying fsed/fsed.py -> build/lib/fsed
+copying fsed/utils.py -> build/lib/fsed
+creating build/lib/fsed/tests
+copying fsed/tests/test_ahocorasick.py -> build/lib/fsed/tests
+copying fsed/tests/__init__.py -> build/lib/fsed/tests
+copying fsed/tests/test_fsed.py -> build/lib/fsed/tests
+copying fsed/VERSION -> build/lib/fsed
+installing to build/bdist.macosx-10.9-universal2/wheel
+running install
+running install_lib
+creating build/bdist.macosx-10.9-universal2/wheel
+creating build/bdist.macosx-10.9-universal2/wheel/fsed
+copying build/lib/fsed/compat.py -> build/bdist.macosx-10.9-universal2/wheel/./fsed
+copying build/lib/fsed/ahocorasick.py -> build/bdist.macosx-10.9-universal2/wheel/./fsed
+creating build/bdist.macosx-10.9-universal2/wheel/fsed/tests
+copying build/lib/fsed/tests/test_ahocorasick.py -> build/bdist.macosx-10.9-universal2/wheel/./fsed/tests
+copying build/lib/fsed/tests/__init__.py -> build/bdist.macosx-10.9-universal2/wheel/./fsed/tests
+copying build/lib/fsed/tests/test_fsed.py -> build/bdist.macosx-10.9-universal2/wheel/./fsed/tests
+copying build/lib/fsed/__init__.py -> build/bdist.macosx-10.9-universal2/wheel/./fsed
+copying build/lib/fsed/fsed.py -> build/bdist.macosx-10.9-universal2/wheel/./fsed
+copying build/lib/fsed/VERSION -> build/bdist.macosx-10.9-universal2/wheel/./fsed
+copying build/lib/fsed/utils.py -> build/bdist.macosx-10.9-universal2/wheel/./fsed
+running install_egg_info
+running egg_info
+writing fsed.egg-info/PKG-INFO
+writing dependency_links to fsed.egg-info/dependency_links.txt
+writing entry points to fsed.egg-info/entry_points.txt
+writing requirements to fsed.egg-info/requires.txt
+writing top-level names to fsed.egg-info/top_level.txt
+reading manifest file 'fsed.egg-info/SOURCES.txt'
+reading manifest template 'MANIFEST.in'
+adding license file 'LICENSE.rst'
+writing manifest file 'fsed.egg-info/SOURCES.txt'
+Copying fsed.egg-info to build/bdist.macosx-10.9-universal2/wheel/./fsed-0.5.4-py3.11.egg-info
+running install_scripts
+creating build/bdist.macosx-10.9-universal2/wheel/fsed-0.5.4.dist-info/WHEEL
+creating '<FSed_CHECKOUT>/dist/.tmp-wh7po49f/fsed-0.5.4-py2.py3-none-any.whl' and adding 'build/bdist.macosx-10.9-universal2/wheel' to it
+adding 'fsed/VERSION'
+adding 'fsed/__init__.py'
+adding 'fsed/ahocorasick.py'
+adding 'fsed/compat.py'
+adding 'fsed/fsed.py'
+adding 'fsed/utils.py'
+adding 'fsed/tests/__init__.py'
+adding 'fsed/tests/test_ahocorasick.py'
+adding 'fsed/tests/test_fsed.py'
+adding 'fsed-0.5.4.dist-info/LICENSE.rst'
+adding 'fsed-0.5.4.dist-info/METADATA'
+adding 'fsed-0.5.4.dist-info/WHEEL'
+adding 'fsed-0.5.4.dist-info/entry_points.txt'
+adding 'fsed-0.5.4.dist-info/top_level.txt'
+adding 'fsed-0.5.4.dist-info/RECORD'
+removing build/bdist.macosx-10.9-universal2/wheel
+WARNING Unknown distribution option: 'test_suite'
+WARNING Unknown distribution option: 'tests_require'
+WARNING bdist_wheel.universal is deprecated
+!!
+
+        ********************************************************************************
+        With Python 2.7 end-of-life, support for building universal wheels
+        (i.e., wheels that support both Python 2 and Python 3)
+        is being obviated.
+        Please discontinue using this option, or if you still need it,
+        file an issue with pypa/setuptools describing your use case.
+
+        This deprecation is overdue, please update your project and remove deprecated
+        calls to avoid build errors in the future.
+        ********************************************************************************
+
+!!
+Successfully built fsed-0.5.4.tar.gz and fsed-0.5.4-py2.py3-none-any.whl

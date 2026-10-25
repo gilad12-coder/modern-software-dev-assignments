@@ -1,0 +1,94 @@
+[
+  {
+    "name": "tests",
+    "command": [
+      "<FSed_CHECKOUT>/.venv/bin/python",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "fsed/tests",
+      "-t",
+      ".",
+      "-v"
+    ],
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "log": "tests.log"
+  },
+  {
+    "name": "focused-test",
+    "command": [
+      "<FSed_CHECKOUT>/.venv/bin/python",
+      "-m",
+      "unittest",
+      "fsed.tests.test_fsed.TestFsed.test_end2end",
+      "-v"
+    ],
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "log": "focused-test.log"
+  },
+  {
+    "name": "syntax",
+    "command": [
+      "<FSed_CHECKOUT>/.venv/bin/python",
+      "-m",
+      "compileall",
+      "-q",
+      "fsed"
+    ],
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "log": "syntax.log"
+  },
+  {
+    "name": "build",
+    "command": [
+      "<FSed_CHECKOUT>/.venv/bin/python",
+      "-m",
+      "build",
+      "--no-isolation"
+    ],
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "log": "build.log"
+  },
+  {
+    "name": "cli-help",
+    "command": [
+      "<FSed_CHECKOUT>/.venv/bin/python",
+      "-m",
+      "fsed.fsed",
+      "--help"
+    ],
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "log": "cli-help.log"
+  },
+  {
+    "name": "legacy-test-command",
+    "command": [
+      "<FSed_CHECKOUT>/.venv/bin/python",
+      "setup.py",
+      "test"
+    ],
+    "exit_code": 1,
+    "expected_exit_code": 1,
+    "log": "legacy-test-command.log"
+  },
+  {
+    "name": "wrong-discovery-root",
+    "command": [
+      "<FSed_CHECKOUT>/.venv/bin/python",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "fsed/tests"
+    ],
+    "exit_code": 1,
+    "expected_exit_code": 1,
+    "log": "wrong-discovery-root.log"
+  }
+]

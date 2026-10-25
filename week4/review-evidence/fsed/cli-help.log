@@ -1,0 +1,24 @@
+Usage: python -m fsed.fsed [OPTIONS] PATTERN_FILE [INPUT_FILES]
+
+  Search and replace on INPUT_FILE(s) (or standard input), with matching on
+  fixed strings.
+
+Options:
+  --pattern-format [auto|tsv|sed]
+                                  Specify the format of PATTERN_FILE
+                                  [default: auto]
+  -o, --output PATH               Program output is written to this file.
+                                  Default is to write to standard output.
+  -e, --encoding TEXT             The character encoding to use  [default:
+                                  utf-8]
+  -w, --words                     Match only on word boundaries: appends "\b"
+                                  to the beginning and end of every pattern in
+                                  PATTERN_FILE.
+  --by-line / --across-lines      Process the input line by line or character
+                                  by character; the default is --across-lines.
+  --slow                          Try very hard to find the longest matches on
+                                  the input; this is very slow, and forces
+                                  --by-line.
+  -v, --verbose                   Turns on debugging output.
+  -q, --quiet                     Quiet operation, do not emit warnings.
+  --help                          Show this message and exit.

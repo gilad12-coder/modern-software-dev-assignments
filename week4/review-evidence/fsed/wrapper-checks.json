@@ -1,0 +1,34 @@
+[
+  {
+    "shell": "/bin/bash",
+    "case": "pass",
+    "command": "(.venv/bin/python -m unittest discover -s fsed/tests -t . -v > .venv/wrapper-bash-pass.log 2>&1; test_exit=$?; cat .venv/wrapper-bash-pass.log; exit \"$test_exit\")",
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "log": "wrapper-bash-pass.log"
+  },
+  {
+    "shell": "/bin/bash",
+    "case": "discovery-failure",
+    "command": "(.venv/bin/python -m unittest discover -s fsed/tests  > .venv/wrapper-bash-discovery-failure.log 2>&1; test_exit=$?; cat .venv/wrapper-bash-discovery-failure.log; exit \"$test_exit\")",
+    "exit_code": 1,
+    "expected_exit_code": 1,
+    "log": "wrapper-bash-discovery-failure.log"
+  },
+  {
+    "shell": "/bin/zsh",
+    "case": "pass",
+    "command": "(.venv/bin/python -m unittest discover -s fsed/tests -t . -v > .venv/wrapper-zsh-pass.log 2>&1; test_exit=$?; cat .venv/wrapper-zsh-pass.log; exit \"$test_exit\")",
+    "exit_code": 0,
+    "expected_exit_code": 0,
+    "log": "wrapper-zsh-pass.log"
+  },
+  {
+    "shell": "/bin/zsh",
+    "case": "discovery-failure",
+    "command": "(.venv/bin/python -m unittest discover -s fsed/tests  > .venv/wrapper-zsh-discovery-failure.log 2>&1; test_exit=$?; cat .venv/wrapper-zsh-discovery-failure.log; exit \"$test_exit\")",
+    "exit_code": 1,
+    "expected_exit_code": 1,
+    "log": "wrapper-zsh-discovery-failure.log"
+  }
+]
