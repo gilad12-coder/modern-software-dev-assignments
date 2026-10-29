@@ -1,189 +1,148 @@
-# Week 5 Write-up
+# Week 5 write-up
 
 ## Repositories chosen
 
-I compared Pydantic, pandas, and FastRTC. All three expose Python APIs, but their implementation languages and project sizes differ.
+I compared three Python projects of different ages and sizes. Each also uses other languages.
 
-| Repo | Languages | Size | Created / current activity |
+| Repo | Languages | Size (Python lines) | Creation date |
 |---|---|---|---|
-| [Pydantic](https://github.com/pydantic/pydantic/tree/dd0c36a4be235522e34659ba372c59b43b55f33e) | Python and Rust | 872 tracked files; 181,487 Python lines | Created 2017-05-03; checked-out commit 2026-10-29; 29,232 stars at capture |
-| [pandas](https://github.com/pandas-dev/pandas/tree/0988929a21cdcc933b380871a622138eb18cc207) | Python, Cython, C/C++ | 2,688 tracked files; 746,288 Python lines | Created 2010-08-24; checked-out commit 2026-10-29; 50,252 stars at capture |
-| [FastRTC](https://github.com/gradio-app/fastrtc/tree/59ca4f77e1669a9599c0895fd0d7c39f356bf89f) | Python API; JavaScript, Svelte, TypeScript frontend | 264 tracked files; 10,712 Python lines | Created 2024-09-25; checked-out commit 2026-10-21; 4,636 stars at capture |
-
-Size counts come from the checked-out commits. Python line counts include tests, comments, and blank lines, and exclude other languages. Dates describe GitHub repository creation, not the first release of each project. GitHub reports JavaScript as FastRTC's largest language by bytes; its Python library includes a browser frontend. This is a comparison within the Python ecosystem, with limited language diversity. [Repository metadata](reports/repository-metadata.json)
+| [Pydantic](https://github.com/pydantic/pydantic/tree/dd0c36a4be235522e34659ba372c59b43b55f33e) | Python and Rust | 181,487 | 05/03/2017 |
+| [pandas](https://github.com/pandas-dev/pandas/tree/0988929a21cdcc933b380871a622138eb18cc207) | Python, Cython, C/C++ | 746,288 | 08/24/2010 |
+| [FastRTC](https://github.com/gradio-app/fastrtc/tree/59ca4f77e1669a9599c0895fd0d7c39f356bf89f) | Python; JavaScript, Svelte, TypeScript in the browser | 10,712 | 09/25/2024 |
 
 ## Method and limits
 
-I ran Factory's native `/readiness-report` command on October 29, 2026, using Droid 0.231.0 and its default GPT-6 Sol model at medium effort. Each repository had a clean working tree at the recorded commit. Reports used local source and available GitHub evidence. The runs did not install dependencies or change repository files.
-
-Droid assessed two Pydantic packages, three pandas applications, and one FastRTC application:
-
-- Pydantic: the main Python package and `pydantic-core`.
-- pandas: the library, the static website, and the JupyterLite browser REPL.
-- FastRTC: one library application, including its bundled UI and demos.
-
-The current command evaluates 84 criteria. A repository criterion has denominator 1. An application criterion can receive partial credit, such as 2/3. A null numerator means skipped and contributes nothing to either side of the average.
-
-There is a scoring-version mismatch. The [course's linked article](https://factory.com/news/agent-readiness) describes progression through 80% completion of successive levels. The installed command instead averages all non-skipped criterion fractions, with level boundaries at 20%, 40%, 60%, and 80%. I report the levels that this command actually produced. I do not apply the article's different progression rule to these results. [Run metadata](reports/run-metadata.json)
-
-The pillar table below uses the assignment's eight headings. I separated Code Quality from the current Style & Validation group. Task Discovery belongs under Security & Governance here; product analytics belongs under Observability. The [mapping](reports/pillar-mapping.json) assigns every criterion exactly once. These pillar scores are my calculations from the native results, not extra scores returned by Factory.
-
-Test evidence is limited to collection, not test execution. The Pydantic core sample collected three tests; the pandas website sample collected five. Pydantic's main sample failed because the installed core version was 2.41.5, while the checkout required 2.50.0. The pandas library sample failed on missing compiled extensions and a local PyArrow/NumPy incompatibility. FastRTC's sample failed because the package was not installed. These failures describe the assessment environment; they do not establish broken tests in the projects. Successful collection also does not verify compiled extensions from these commits.
-
-Pydantic's first run stopped at a test-collection permission check. I resumed the same session with permission for those bounded commands. Storage succeeded and the complete report appeared, but the resumed CLI exited 1 and repeated its summary in an error event. Its cause remains unconfirmed. The other two CLIs exited 0. All three successful storage receipts are included. Pandas also restricted issue and PR interactions in its repository instructions, which caused Droid to skip several remote checks. The available evidence therefore differs between repositories.
+I ran Factory's `/readiness-report` on all three repositories. The [course article](https://factory.com/news/agent-readiness) requires passing 80% of the checks at the target level and earlier levels. Droid 0.231.0 averages all scored checks, with levels starting at 20%, 40%, 60%, and 80%. I used the levels from the raw reports because the assignment asks for Droid's results. I [grouped](reports/pillar-mapping.json) the checks under the eight required pillars.
 
 ## Part I: Report results
 
 ### Summary
 
-| Repo | Native maturity level | Weighted score | Complete / partial / zero / skipped criteria | Next level |
+| Repo | Current level | Score | Next level | What to improve first |
 |---|---|---|---|---|
-| Pydantic | Level 3 | 47.1% (32/68) | 28 / 8 / 32 / 16 | 60% |
-| pandas | Level 3 | 43.6% (29.667/68) | 19 / 19 / 30 / 16 | 60% |
-| FastRTC | Level 2 | 25.4% (17/67) | 17 / 0 / 50 / 17 | 40% |
-
-“Points” means the sum of criterion fractions. Pydantic has 28 complete passes and eight half-passes, totaling 32 points. Its native summary's phrase “32 ... signals passed” is shorthand, not a count of complete passes. Pandas has 19 complete passes and 19 partial passes. FastRTC has 17 complete passes and no partial passes.
-
-The current scoring rule has no mandatory, level-specific blocking criterion. With the same denominators and skip decisions, Pydantic needs at least nine complete criterion improvements to reach 60%; pandas needs twelve. FastRTC needs ten to reach 40%. Partial improvements can require more changes. One implementation change can also improve several criteria.
-
-The main candidates are setup and build guidance, missing coverage or validation checks, and incomplete application coverage. Pydantic's unresolved criteria include `agents_md`, `build_cmd_doc`, and `single_command_setup`. Pandas loses credit on its browser REPL and has no enforced coverage threshold. FastRTC lacks contributor guidance, Python dependency pinning, pre-commit hooks, and several contribution-process checks. The full inventory follows below.
+| Pydantic | Level 3 | 47.1% | Level 4 at 60% | Agent instructions, build instructions, setup steps |
+| pandas | Level 3 | 43.6% | Level 4 at 60% | Tests for the browser Python console, minimum test coverage |
+| FastRTC | Level 2 | 25.4% | Level 3 at 40% | Agent instructions, fixed package versions, issue and pull request templates |
 
 ### Pillar scores
 
-Each cell shows percent and weighted points divided by evaluated criteria. A 1/2 criterion contributes 0.5 points. Skips are excluded. Pillars have different numbers of criteria, so averaging the eight percentages would give the wrong overall score. Displayed values are rounded.
-
 | Pillar | Pydantic | pandas | FastRTC |
 |---|---|---|---|
-| Style & Validation | 75.0% (4.5/6) | 61.1% (3.667/6) | 50.0% (3/6) |
-| Build System | 40.0% (6/15) | 53.8% (7/13) | 33.3% (5/15) |
-| Testing | 65.0% (6.5/10) | 46.7% (4.667/10) | 50.0% (5/10) |
-| Documentation | 71.4% (5/7) | 71.4% (5/7) | 42.9% (3/7) |
-| Dev Environment | 0.0% (0/2) | 0.0% (0/2) | 0.0% (0/2) |
-| Code Quality | 42.9% (3/7) | 23.8% (1.667/7) | 16.7% (1/6) |
-| Observability | 10.0% (1/10) | 13.9% (1.667/12) | 0.0% (0/10) |
-| Security & Governance | 54.5% (6/11) | 54.5% (6/11) | 0.0% (0/11) |
+| Style & Validation | 75.0% | 61.1% | 50.0% |
+| Build System | 40.0% | 53.8% | 33.3% |
+| Testing | 65.0% | 46.7% | 50.0% |
+| Documentation | 71.4% | 71.4% | 42.9% |
+| Dev Environment | 0.0% | 0.0% | 0.0% |
+| Code Quality | 42.9% | 23.8% | 16.7% |
+| Observability | 10.0% | 13.9% | 0.0% |
+| Security & Governance | 54.5% | 54.5% | 0.0% |
 
-### Failed criteria by pillar
+### Failed or partly passed checks by pillar
 
-The inventory includes both zero scores and partial scores. A partial score identifies uneven coverage between applications. Skipped criteria remain in the raw reports and are not presented as failures.
+| Category | What it covers |
+|---|---|
+| Style & Validation | Code layout, naming, and data type checks. |
+| Build System | How to install, build, review, and release the project. |
+| Testing | Whether tests exist, run reliably, and cover enough code. |
+| Documentation | Instructions for understanding and contributing to the project. |
+| Dev Environment | Tools and settings for working on the project locally. |
+| Code Quality | Keeping code simple, organized, and free of duplication. |
+| Observability | Finding and investigating problems while the software runs. |
+| Security & Governance | Protecting sensitive data and managing contributions. |
 
-<details>
-<summary>Complete failed and partial criterion inventory</summary>
+1/2 means a check passed for one of two applications; 0/1 means it failed.
 
 #### Style & Validation
 
-- Pydantic: `strict_typing` (0/2); `naming_consistency` (1/2).
-- pandas: `lint_config` (2/3); `type_check` (1/3); `formatter` (2/3); `strict_typing` (1/3); `naming_consistency` (2/3).
-- FastRTC: `pre_commit_hooks` (0/1); `strict_typing` (0/1); `naming_consistency` (0/1).
+- Pydantic: Strict data type checks (0/2); Naming rules (1/2).
+- pandas: Code error and style checks (2/3); Data type checks (1/3); Automatic formatting (2/3); Strict data type checks (1/3); Naming rules (2/3).
+- FastRTC: Checks before committing (0/1); Strict data type checks (0/1); Naming rules (0/1).
 
 #### Build System
 
-- Pydantic: `build_cmd_doc` (0/1); `automated_pr_review` (0/1); `agentic_development` (0/1); `fast_ci_feedback` (0/1); `build_performance_tracking` (0/1); `deployment_frequency` (0/1); `single_command_setup` (0/1); `feature_flag_infrastructure` (0/1); `unused_dependencies_detection` (0/2).
-- pandas: `build_cmd_doc` (0/1); `build_performance_tracking` (0/1); `single_command_setup` (0/1); `feature_flag_infrastructure` (0/1); `heavy_dependency_detection` (0/3); `unused_dependencies_detection` (0/3).
-- FastRTC: `build_cmd_doc` (0/1); `deps_pinned` (0/1); `automated_pr_review` (0/1); `build_performance_tracking` (0/1); `deployment_frequency` (0/1); `feature_flag_infrastructure` (0/1); `release_notes_automation` (0/1); `version_drift_detection` (0/1); `heavy_dependency_detection` (0/1); `unused_dependencies_detection` (0/1).
+- Pydantic: Build instructions (0/1); Automated code review (0/1); Use of coding agents (0/1); Fast automated checks (0/1); Build time tracking (0/1); Release frequency (0/1); Setup steps (0/1); Feature on/off switches (0/1); Checks for unused packages (0/2).
+- pandas: Build instructions (0/1); Build time tracking (0/1); Setup steps (0/1); Feature on/off switches (0/1); Checks for large dependencies (0/3); Checks for unused packages (0/3).
+- FastRTC: Build instructions (0/1); Fixed package versions (0/1); Automated code review (0/1); Build time tracking (0/1); Release frequency (0/1); Feature on/off switches (0/1); Automatic release notes (0/1); Version mismatch checks (0/1); Checks for large dependencies (0/1); Checks for unused packages (0/1).
 
 #### Testing
 
-- Pydantic: `unit_tests_runnable` (1/2); `test_performance_tracking` (1/2); `flaky_test_detection` (0/2); `test_coverage_thresholds` (1/2); `test_naming_conventions` (0/2).
-- pandas: `unit_tests_exist` (2/3); `integration_tests_exist` (2/3); `unit_tests_runnable` (1/3); `test_performance_tracking` (2/3); `flaky_test_detection` (0/3); `test_coverage_thresholds` (0/3); `test_naming_conventions` (1/3); `test_isolation` (2/3); `interactive_qa_exists` (2/3); `interactive_qa_runnable` (2/3).
-- FastRTC: `unit_tests_runnable` (0/1); `test_performance_tracking` (0/1); `flaky_test_detection` (0/1); `test_coverage_thresholds` (0/1); `test_naming_conventions` (0/1).
+- Pydantic: Loading tests locally (1/2); Test run times (1/2); Finding tests that fail inconsistently (0/2); Minimum test coverage (1/2); Test naming rules (0/2).
+- pandas: Unit tests (2/3); Integration tests (2/3); Loading tests locally (1/3); Test run times (2/3); Finding tests that fail inconsistently (0/3); Minimum test coverage (0/3); Test naming rules (1/3); Keeping tests independent (2/3); Instructions for trying the software (2/3); Working or documented usage steps (2/3).
+- FastRTC: Loading tests locally (0/1); Test run times (0/1); Finding tests that fail inconsistently (0/1); Minimum test coverage (0/1); Test naming rules (0/1).
 
 #### Documentation
 
-- Pydantic: `agents_md` (0/1); `agents_md_validation` (0/1).
-- pandas: `skills` (0/1); `service_flow_documented` (0/1).
-- FastRTC: `agents_md` (0/1); `skills` (0/1); `documentation_freshness` (0/1); `agents_md_validation` (0/1).
+- Pydantic: Agent instructions (0/1); Checking the agent instructions (0/1).
+- pandas: Reusable task guides for agents (0/1); How parts connect and share data (0/1).
+- FastRTC: Agent instructions (0/1); Reusable task guides for agents (0/1); Recent documentation updates (0/1); Checking the agent instructions (0/1).
 
 #### Dev Environment
 
-- Pydantic: `devcontainer` (0/1); `env_template` (0/1).
-- pandas: `devcontainer` (0/1); `env_template` (0/1).
-- FastRTC: `devcontainer` (0/1); `env_template` (0/1).
+- Pydantic: Development container (0/1); Environment variable instructions (0/1).
+- pandas: Development container (0/1); Environment variable instructions (0/1).
+- FastRTC: Development container (0/1); Environment variable instructions (0/1).
 
 #### Code Quality
 
-- Pydantic: `tech_debt_tracking` (0/1); `cyclomatic_complexity` (1/2); `dead_code_detection` (1/2); `duplicate_code_detection` (0/2); `code_modularization` (0/2).
-- pandas: `large_file_detection` (0/1); `tech_debt_tracking` (0/1); `cyclomatic_complexity` (0/3); `dead_code_detection` (2/3); `duplicate_code_detection` (0/3); `code_modularization` (2/3); `code_quality_metrics` (1/3).
-- FastRTC: `large_file_detection` (0/1); `tech_debt_tracking` (0/1); `cyclomatic_complexity` (0/1); `duplicate_code_detection` (0/1); `code_modularization` (0/1).
+- Pydantic: Tracking needed code cleanup (0/1); Checks for overly complex code (1/2); Checks for unused code (1/2); Checks for repeated code (0/2); Rules for how code modules connect (0/2).
+- pandas: Checks for large files (0/1); Tracking needed code cleanup (0/1); Checks for overly complex code (0/3); Checks for unused code (2/3); Checks for repeated code (0/3); Rules for how code modules connect (2/3); Code quality measurements (1/3).
+- FastRTC: Checks for large files (0/1); Tracking needed code cleanup (0/1); Checks for overly complex code (0/1); Checks for repeated code (0/1); Rules for how code modules connect (0/1).
 
 #### Observability
 
-- Pydantic: `runbooks_documented` (0/1); `structured_logging` (0/2); `distributed_tracing` (0/2); `metrics_collection` (0/2); `error_tracking_contextualized` (0/2); `alerting_configured` (0/2); `deployment_observability` (0/2); `product_analytics_instrumentation` (0/2); `error_to_insight_pipeline` (0/2).
-- pandas: `runbooks_documented` (0/1); `structured_logging` (0/3); `distributed_tracing` (0/3); `metrics_collection` (0/3); `error_tracking_contextualized` (0/3); `alerting_configured` (2/3); `deployment_observability` (0/3); `health_checks` (0/3); `circuit_breakers` (1/3); `profiling_instrumentation` (0/3); `product_analytics_instrumentation` (0/3); `error_to_insight_pipeline` (2/3).
-- FastRTC: `runbooks_documented` (0/1); `structured_logging` (0/1); `distributed_tracing` (0/1); `metrics_collection` (0/1); `error_tracking_contextualized` (0/1); `alerting_configured` (0/1); `deployment_observability` (0/1); `profiling_instrumentation` (0/1); `product_analytics_instrumentation` (0/1); `error_to_insight_pipeline` (0/1).
+- Pydantic: Instructions for handling failures (0/1); Logs with consistent fields (0/2); Following requests across components (0/2); Performance and error measurements (0/2); Error reports with useful details (0/2); Failure alerts (0/2); Tracking the effects of releases (0/2); Tracking how people use the software (0/2); Automatic issue reports from errors (0/2).
+- pandas: Instructions for handling failures (0/1); Logs with consistent fields (0/3); Following requests across components (0/3); Performance and error measurements (0/3); Error reports with useful details (0/3); Failure alerts (2/3); Tracking the effects of releases (0/3); Checks that services are working (0/3); Protection when dependencies fail (1/3); Finding where time and memory are spent (0/3); Tracking how people use the software (0/3); Automatic issue reports from errors (2/3).
+- FastRTC: Instructions for handling failures (0/1); Logs with consistent fields (0/1); Following requests across components (0/1); Performance and error measurements (0/1); Error reports with useful details (0/1); Failure alerts (0/1); Tracking the effects of releases (0/1); Finding where time and memory are spent (0/1); Tracking how people use the software (0/1); Automatic issue reports from errors (0/1).
 
 #### Security & Governance
 
-- Pydantic: `codeowners` (0/1); `gitignore_comprehensive` (0/1); `issue_labeling_system` (0/1); `pr_templates` (0/1); `pii_handling` (1/2); `log_scrubbing` (1/2).
-- pandas: `gitignore_comprehensive` (0/1); `issue_labeling_system` (0/1); `pr_templates` (0/1); `dast_scanning` (0/3); `log_scrubbing` (0/3).
-- FastRTC: `codeowners` (0/1); `dependency_update_automation` (0/1); `gitignore_comprehensive` (0/1); `secrets_management` (0/1); `min_release_age` (0/1); `issue_templates` (0/1); `issue_labeling_system` (0/1); `backlog_health` (0/1); `pr_templates` (0/1); `pii_handling` (0/1); `log_scrubbing` (0/1).
+- Pydantic: Assigned code reviewers (0/1); Keeping unwanted files out of Git (0/1); Labels showing issue priority (0/1); Pull request templates (0/1); Protecting personal information (1/2); Removing private information from logs (1/2).
+- pandas: Keeping unwanted files out of Git (0/1); Labels showing issue priority (0/1); Pull request templates (0/1); Security tests on the running software (0/3); Removing private information from logs (0/3).
+- FastRTC: Assigned code reviewers (0/1); Automatic dependency updates (0/1); Keeping unwanted files out of Git (0/1); Secure storage for passwords and tokens (0/1); Waiting before adopting new package releases (0/1); Issue templates (0/1); Labels showing issue priority (0/1); Clear and up-to-date issues (0/1); Pull request templates (0/1); Protecting personal information (0/1); Removing private information from logs (0/1).
 
-</details>
+### The reports' suggested fixes
 
-### The reports' top remediation suggestions
-
-| Repo | Native report suggestions, summarized |
+| Repo | Report suggestions |
 |---|---|
-| Pydantic | Expand root AGENTS.md and validate its commands in CI; check unused dependencies and test names; improve the PR template, priority labels, and CODEOWNERS. |
-| pandas | Document a serve-and-drive path for the JupyterLite REPL; enforce a coverage minimum; ignore `.env` files and document build environment variables. |
-| FastRTC | Add AGENTS.md with build, test, and local QA commands; pin Python dependencies and make test collection work from a fresh checkout; add contribution templates, priority labels, and dependency updates. |
-
-These are the reports' suggestions. My priorities and reasons appear in Part II.
+| Pydantic | Expand AGENTS.md and automatically check its instructions. Add checks for unused packages and test names. Improve pull request templates, priority labels, and reviewer assignments. |
+| pandas | Document how to try the browser Python console. Set a minimum test coverage requirement, ignore `.env` files, and document build settings. |
+| FastRTC | Add AGENTS.md and use fixed Python package versions. Check that tests load after a fresh installation. Add contribution templates, priority labels, and automatic dependency updates. |
 
 ## Part II: Analysis
 
 ### Which pillars failed most?
 
-Development Environment scored 0% for all three repositories. The two scored criteria were a devcontainer and an environment template or documented variables. Other criteria were skipped. That is a narrow result: it does not mean all three repositories lack setup instructions.
-
-Observability was also weak: Pydantic scored 10.0%, pandas 13.9%, and FastRTC 0%. All three failed structured logging, distributed tracing, runtime metrics, contextual error tracking, deployment observability, and product analytics. These are consistent checklist gaps, but their importance depends on the software. Libraries usually run inside someone else's application. Requiring each library to own production dashboards or product analytics gives it responsibilities that may belong to its users.
-
-FastRTC also scored 0% on the eleven evaluated Security & Governance criteria. Its missing issue and PR templates, dependency-update automation, CODEOWNERS, and priority labels are concrete process differences. Branch protection and native secret scanning were skipped for insufficient access, so the report does not establish that they are disabled. Pydantic and pandas both scored 54.5% in this group.
-
-Pandas's weaker Testing and Style & Validation scores need a different explanation. Its library has extensive checks, but the report spreads application criteria across the library, website, and REPL. For example, unit tests exist scored 2/3, while type checking scored 1/3. The configuration-only REPL also lost linting, naming, and formatting credit. A whole-repository average can therefore hide strong library tooling.
+The Dev Environment pillar scored 0% for all three repositories. Its scored checks covered only development containers and setup settings. Observability scores ranged from 0% to 13.9%, with gaps in logging, tracing, and usage tracking. Only FastRTC scored 0% on the Security & Governance checks Droid could assess. It lacked contribution templates, automatic dependency updates, a file that assigns code reviewers, and priority labels. Droid could not verify its branch protection or secret scanning.
 
 ### What explains the pattern?
 
-The youngest and smallest repository, FastRTC, scored lowest. Its Python dependency set lacks a lockfile, and several GitHub process files are missing. Contributor commands are not collected in AGENTS.md. The older repositories provide more of that infrastructure.
+FastRTC, the youngest and smallest project, has gaps in fixed package versions and contributor instructions. Pandas is older and larger than Pydantic but scores lower. Its website and browser console bring down the average; only two of its three applications have unit tests. Since all three projects mix Python with other languages, I cannot make a clear comparison by language.
 
-Age and size do not explain the full ranking. Pandas is older, larger, and more starred than Pydantic, yet its score is lower. The different application boundaries explain part of that result. Size, age, popularity, project purpose, and the amount of non-library code vary together in this sample. Three observations cannot isolate their effects.
-
-The recent contributor counts also resist a simple single-maintainer explanation. The last 100 non-merge commits contained 22 author names for Pydantic, 21 for pandas, and 23 for FastRTC. The most frequent author accounted for 60, 53, and 64 commits, respectively. These counts include automation and describe commits, not hours worked or funding. I cannot infer a corporate-backing effect from them. Pandas documents community maintenance and NumFOCUS support, but this sample does not provide a controlled comparison of staffing models. [Pandas README](https://github.com/pandas-dev/pandas/blob/0988929a21cdcc933b380871a622138eb18cc207/README.md)
-
-Language is also only partly controlled. Pydantic includes Rust, pandas uses Cython and C/C++, and FastRTC includes browser code. Their build and test requirements differ even though their users write Python. I would need more repositories, with comparable application boundaries and prepared environments, before making claims about Python projects generally.
+Pydantic, pandas, and FastRTC had 22, 21, and 23 author names in their last 100 non-merge commits, including bots. Pydantic assigns [company engineers](https://pydantic.dev/jobs/evals-continuous-learning-engineer) to its libraries, and pandas has [NumFOCUS support](https://github.com/pandas-dev/pandas/blob/0988929a21cdcc933b380871a622138eb18cc207/README.md). These counts do not tell us how many people actively maintain each project. Without a confirmed example of a project maintained by one person, this sample cannot show how company support affects readiness.
 
 ### Cheapest useful fix for each repository
 
-| Repo | One change | Why I would prioritize it |
+| Repo | Proposed fix | Why this fix |
 |---|---|---|
-| Pydantic | Put a concise checkout-to-test procedure in root AGENTS.md, including the Rust prerequisite, matching core version, and a focused test command. | I agree with the report's first suggestion, but would focus on version-correct setup before adding further checks. The existing contributing guide already documents `make install` and testing. A clear entry point can help an agent avoid the version mismatch seen here without duplicating the whole guide. |
-| pandas | Add a small automated smoke check for the JupyterLite REPL: build it, serve it, import pandas in the browser, and check one DataFrame result. | The report first recommends documenting how to serve and exercise the REPL. A smoke check would verify that path after dependency changes. It targets the application with no tests, while a coverage threshold for the large existing library suite requires a separate baseline decision. |
-| FastRTC | Expose the existing CI dependency setup and a bounded test-collection command through one documented contributor check. | The report first recommends AGENTS.md. I would start with the executable procedure that such a file should reference. CI already installs the development and TTS extras before pytest. Reusing that path reduces setup guesswork. The missing-package error is evidence of an unprepared local environment, not proof that the CI recipe fails. |
-
-These are proposed changes; I did not implement them or claim they would pass without verification. The source checks behind these choices are Pydantic's [AGENTS.md](https://github.com/pydantic/pydantic/blob/dd0c36a4be235522e34659ba372c59b43b55f33e/AGENTS.md) and [contributing guide](https://github.com/pydantic/pydantic/blob/dd0c36a4be235522e34659ba372c59b43b55f33e/CONTRIBUTING.md), pandas's [REPL guide](https://github.com/pandas-dev/pandas/blob/0988929a21cdcc933b380871a622138eb18cc207/web/interactive_terminal/README.md), and FastRTC's [test workflow](https://github.com/gradio-app/fastrtc/blob/59ca4f77e1669a9599c0895fd0d7c39f356bf89f/.github/workflows/tests.yml).
+| Pydantic | Add setup and test commands to [AGENTS.md](https://github.com/pydantic/pydantic/blob/dd0c36a4be235522e34659ba372c59b43b55f33e/AGENTS.md). | Pydantic's main tests could not load because the installed pydantic-core version was incompatible. I agree with the report's recommendation because the [guide](https://github.com/pydantic/pydantic/blob/dd0c36a4be235522e34659ba372c59b43b55f33e/CONTRIBUTING.md) already provides `make install` and test commands to add to AGENTS.md. Copying those steps takes only a short documentation edit. Agents would have setup steps to follow from the start, which could reduce version mistakes and help them check their changes sooner. |
+| pandas | Add a basic test: build and open the [browser Python console](https://github.com/pandas-dev/pandas/blob/0988929a21cdcc933b380871a622138eb18cc207/web/interactive_terminal/README.md), import pandas, and check one DataFrame result. | The browser console is the only pandas application in the report without unit tests. I would reuse its existing build for a basic test to keep the setup work small. The report recommends usage instructions. A test takes more effort to write, but it checks whether the console still works after updates. Agents could rerun it to catch broken imports or incorrect results. |
+| FastRTC | Document one command to install [test packages](https://github.com/gradio-app/fastrtc/blob/59ca4f77e1669a9599c0895fd0d7c39f356bf89f/.github/workflows/tests.yml) and load the tests. | During the audit, Droid could not load FastRTC's tests because the package was not installed. I would document a setup command using the packages already listed in the test workflow. That keeps the edit small and helps agents install the required packages before they load the tests. The report recommends AGENTS.md and installation improvements; I would add this command first, then reference it from AGENTS.md. |
 
 ### Where the framework falls short
 
-First, several criteria assume an application deployed as a service. Missing product analytics, incident runbooks, or distributed tracing can be reasonable for a reusable library. The skip rules help, but their application is uneven. FastRTC skips health checks as a library. Pandas receives 0/3, including the library, because the same repository contains static sites. Splitting applicable and inapplicable sub-applications would produce a more useful denominator.
+Some Observability checks lower a library's score for features that belong in the applications using it. An application can monitor whether its service is running, so the library may not need its own health checks. Droid skips health checks for FastRTC but gives pandas 0/3 across its library and web applications. That makes the scores harder to compare: they partly depend on which checks Droid decides to apply. Droid should skip checks that do not fit an application's purpose. I would give more weight to whether agents can set up the project, change code, and run useful tests.
 
-Second, location matters too much in some documentation checks. Pydantic fails build-command documentation even though its contributing guide contains build and test commands. Its root AGENTS.md points directly to that guide. A discoverability check should follow that pointer and then test the procedure. Pandas receives a similar failure when its root instructions link to the development guide. Both repositories could improve their entry points, but these scores overstate how much information is missing.
+## Raw reports
 
-Third, the report mixes observed execution with documented capability. `interactive_qa_runnable` can pass through a documentation fallback; no browser interaction occurred in these runs. Meanwhile, test collection can fail because the assessor did not install the repository. Those are different evidence types. I would report them separately as verified, documented, unavailable, and not applicable.
+Calculations: [derived-scores.json](reports/derived-scores.json).
 
-Finally, a single percentage gives equal weight to checks with very different consequences. A missing priority label, a dependency mismatch, and a missing test suite each affect the checklist. They do not obstruct an agent equally. I would use these reports to identify a small set of changes. I would then measure whether an agent can complete setup, a bounded change, and the relevant checks. That would test whether the proposed improvement actually reduces failed work.
-
-## Raw output and reproducibility
-
-The native reports and summaries are unchanged. Each report contains all 84 criterion values and rationales. The receipts record successful storage. The table calculations are saved in [derived-scores.json](reports/derived-scores.json).
-
-| Repo | Native structured output | Native text output | Storage receipt |
+| Repo | Full results (JSON) | Report text | Save confirmation |
 |---|---|---|---|
 | Pydantic | [pydantic.native.json](reports/pydantic.native.json) | [pydantic.summary.md](reports/pydantic.summary.md) | [Receipt](reports/pydantic.receipt.json) |
 | pandas | [pandas.native.json](reports/pandas.native.json) | [pandas.summary.md](reports/pandas.summary.md) | [Receipt](reports/pandas.receipt.json) |
 | FastRTC | [fastrtc.native.json](reports/fastrtc.native.json) | [fastrtc.summary.md](reports/fastrtc.summary.md) | [Receipt](reports/fastrtc.receipt.json) |
 
-<details>
-<summary>Pydantic: unchanged native summary</summary>
+### Pydantic
 
 ````text
 # Level
@@ -304,10 +263,7 @@ Scores use the two applications as the denominator for application checks. `N/A`
 View the full report: https://app.factory.ai/analytics/readiness/https%253A%252F%252Fgithub.com%252Fpydantic%252Fpydantic
 ````
 
-</details>
-
-<details>
-<summary>pandas: unchanged native summary</summary>
+### pandas
 
 ````text
 # Level
@@ -428,10 +384,7 @@ View the full report: https://app.factory.ai/analytics/readiness/https%253A%252F
 View the full report: https://app.factory.ai/analytics/readiness/https%253A%252F%252Fgithub.com%252Fpandas-dev%252Fpandas
 ````
 
-</details>
-
-<details>
-<summary>FastRTC: unchanged native summary</summary>
+### FastRTC
 
 ````text
 # Level
@@ -550,5 +503,3 @@ View the full report: https://app.factory.ai/analytics/readiness/https%253A%252F
 ---
 View the full report: https://app.factory.ai/analytics/readiness/https%253A%252F%252Fgithub.com%252Fgradio-app%252Ffastrtc
 ````
-
-</details>
