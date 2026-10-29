@@ -1,0 +1,429 @@
+{
+  "repoUrl": "https://github.com/gradio-app/fastrtc.git",
+  "commitHash": "59ca4f77e1669a9599c0895fd0d7c39f356bf89f",
+  "branch": "main",
+  "hasLocalChanges": false,
+  "hasNonRemoteCommits": false,
+  "report": {
+    "large_file_detection": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "No file-size or maximum-lines hook, CI check, LFS rule, or linter threshold found."
+    },
+    "tech_debt_tracking": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "TODO comments exist, but no debt scanner or issue-link enforcement is configured."
+    },
+    "build_cmd_doc": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "The README documents installation and usage, but not the local package build command in justfile."
+    },
+    "deps_pinned": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "frontend/package-lock.json exists, but the main Python package uses unpinned dependencies and has no lockfile."
+    },
+    "vcs_cli_tools": {
+      "numerator": 1,
+      "denominator": 1,
+      "rationale": "GitHub CLI is installed and authenticated; read-only repository and PR queries succeeded."
+    },
+    "automated_pr_review": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "Recent PRs show human comments and an automated preview comment, but no generated code review content."
+    },
+    "agentic_development": {
+      "numerator": 1,
+      "denominator": 1,
+      "rationale": "Recent git history includes a Claude Opus 5.5 co-author attribution."
+    },
+    "fast_ci_feedback": {
+      "numerator": 1,
+      "denominator": 1,
+      "rationale": "Nine merged PRs with CI checks average 117 seconds from earliest check start to latest completion."
+    },
+    "build_performance_tracking": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "Docs workflow caches dependencies, but no deliberate build-duration monitoring or tracked build metrics were found."
+    },
+    "deployment_frequency": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "Latest release was in November 2025; recent Pages deployments are sporadic, not multiple per week."
+    },
+    "single_command_setup": {
+      "numerator": 1,
+      "denominator": 1,
+      "rationale": "README installation plus justfile's gradio and run targets provide a short local setup and launch sequence."
+    },
+    "feature_flag_infrastructure": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "No feature-flag service, SDK, or custom toggle system found."
+    },
+    "release_notes_automation": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "No automated changelog or release-note generation configuration found."
+    },
+    "progressive_rollout": {
+      "numerator": null,
+      "denominator": 1,
+      "rationale": "Not an infrastructure repository; progressive deployment rollout is not applicable to the library."
+    },
+    "rollback_automation": {
+      "numerator": null,
+      "denominator": 1,
+      "rationale": "Not an infrastructure repository; rollback automation is not applicable to the library."
+    },
+    "monorepo_tooling": {
+      "numerator": null,
+      "denominator": 1,
+      "rationale": "Single root library application with a bundled UI and demos, not a multi-application monorepo."
+    },
+    "version_drift_detection": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "Multiple build packages exist, but no cross-package dependency-version drift check was found."
+    },
+    "release_automation": {
+      "numerator": 1,
+      "denominator": 1,
+      "rationale": "GitHub Actions builds documentation and deploys it to GitHub Pages on main pushes."
+    },
+    "dead_feature_flag_detection": {
+      "numerator": null,
+      "denominator": 1,
+      "rationale": "Skipped because feature-flag infrastructure is absent."
+    },
+    "agents_md": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "No repository-root AGENTS.md exists."
+    },
+    "readme": {
+      "numerator": 1,
+      "denominator": 1,
+      "rationale": "Root README.md documents installation, usage, examples, and launch methods."
+    },
+    "automated_doc_generation": {
+      "numerator": 1,
+      "denominator": 1,
+      "rationale": "MkDocs and llmstxt are configured; GitHub Actions builds and publishes generated documentation."
+    },
+    "skills": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "No repository skill directory with a valid SKILL.md was found."
+    },
+    "documentation_freshness": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "The latest README/AGENTS/CONTRIBUTING change was May 29, 2025, outside the 180-day window."
+    },
+    "service_flow_documented": {
+      "numerator": 1,
+      "denominator": 1,
+      "rationale": "Deployment and API guides document TURN providers, external dependencies, and WebRTC/FastAPI flows."
+    },
+    "agents_md_validation": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "No AGENTS.md exists to validate."
+    },
+    "devcontainer": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "No .devcontainer/devcontainer.json exists."
+    },
+    "env_template": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "No .env.example exists, and required environment variables are absent from the root README."
+    },
+    "local_services_setup": {
+      "numerator": null,
+      "denominator": 1,
+      "rationale": "Core library and local echo UI require no mandatory local database or external service; TURN setup is optional and documented."
+    },
+    "devcontainer_runnable": {
+      "numerator": null,
+      "denominator": 1,
+      "rationale": "Devcontainer CLI is not installed; no container build was attempted."
+    },
+    "runbooks_documented": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "No incident runbook or playbook link was found in repository documentation."
+    },
+    "branch_protection": {
+      "numerator": null,
+      "denominator": 1,
+      "rationale": "Authenticated GitHub CLI lacks repository admin access; branch rules were not accessible for verification."
+    },
+    "secret_scanning": {
+      "numerator": null,
+      "denominator": 1,
+      "rationale": "No local secret-scan configuration found; native GitHub check requires unavailable admin access."
+    },
+    "codeowners": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "No CODEOWNERS file found in standard locations."
+    },
+    "automated_security_review": {
+      "numerator": null,
+      "denominator": 1,
+      "rationale": "No local security-report automation found; native code-scanning check requires unavailable admin access."
+    },
+    "dependency_update_automation": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "No Dependabot or Renovate configuration or update workflow found."
+    },
+    "gitignore_comprehensive": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "Ignores .env, node_modules, dist, .vscode, and .DS_Store, but lacks .idea and build artifacts."
+    },
+    "privacy_compliance": {
+      "numerator": null,
+      "denominator": 1,
+      "rationale": "Library does not itself collect or retain end-user data as an application."
+    },
+    "secrets_management": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "Optional credentials are described as environment variables, but no secrets manager, encrypted secret config, or CI secret references were found."
+    },
+    "min_release_age": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "No explicit waiting period for dependency releases found."
+    },
+    "issue_templates": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "No structured GitHub issue templates directory exists."
+    },
+    "issue_labeling_system": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "GitHub labels cover type and area, but no priority labels are configured."
+    },
+    "backlog_health": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "Fewer than 70% of the latest 50 open issues have both descriptive titles and at least one label; most lack labels."
+    },
+    "pr_templates": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "No pull request template exists."
+    },
+    "lint_config": {
+      "numerator": 1,
+      "denominator": 1,
+      "rationale": "Ruff is configured in pyproject.toml and runs in Python CI."
+    },
+    "type_check": {
+      "numerator": 1,
+      "denominator": 1,
+      "rationale": "Pyright is configured for backend/fastrtc and runs in Python CI."
+    },
+    "formatter": {
+      "numerator": 1,
+      "denominator": 1,
+      "rationale": "Ruff format and frontend Prettier are configured and checked in CI."
+    },
+    "pre_commit_hooks": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "No checked-in Git pre-commit quality hooks or pre-commit configuration found."
+    },
+    "strict_typing": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "Pyright runs, but no strict typeCheckingMode or equivalent strict configuration is enabled."
+    },
+    "naming_consistency": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "No enforced naming-style rules or documented project naming conventions found."
+    },
+    "cyclomatic_complexity": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "No complexity analyzer or threshold configured."
+    },
+    "dead_code_detection": {
+      "numerator": 1,
+      "denominator": 1,
+      "rationale": "Ruff F rules in CI flag unused Python imports and local variables."
+    },
+    "duplicate_code_detection": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "No duplication detector or copy-paste check configured."
+    },
+    "code_modularization": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "No import-linter or enforced Python/TypeScript module-boundary checks found."
+    },
+    "n_plus_one_detection": {
+      "numerator": null,
+      "denominator": 1,
+      "rationale": "Library has no database or ORM query layer."
+    },
+    "heavy_dependency_detection": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "Bundled Gradio frontend has no bundle-size analyzer or dependency-size budget."
+    },
+    "unused_dependencies_detection": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "No deptry, pip-extra-reqs, depcheck, or unused-dependency CI check found."
+    },
+    "unit_tests_exist": {
+      "numerator": 1,
+      "denominator": 1,
+      "rationale": "test/test_utils.py and other test_*.py files contain unit tests."
+    },
+    "integration_tests_exist": {
+      "numerator": 1,
+      "denominator": 1,
+      "rationale": "test/test_stream.py uses FastAPI TestClient, and WebRTC connection tests exercise API and peer-connection flows."
+    },
+    "unit_tests_runnable": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "Bounded pytest collection of test/test_utils.py exited 2: ModuleNotFoundError for fastrtc; no tests collected."
+    },
+    "test_performance_tracking": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "CI runs pytest without duration reporting, retained timing artifacts, or test analytics."
+    },
+    "flaky_test_detection": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "No retry/quarantine or stability monitoring configured; duplicate checks on PRs reflect push and PR workflows, not proven retries."
+    },
+    "test_coverage_thresholds": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "No enforced coverage percentage or coverage gate found."
+    },
+    "test_naming_conventions": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "Tests use test_*.py by convention, but no explicit naming pattern or documented enforcement was found."
+    },
+    "test_isolation": {
+      "numerator": 1,
+      "denominator": 1,
+      "rationale": "pytest-asyncio config sets fixture event loops to function scope, and API tests create fresh FastAPI apps per test."
+    },
+    "interactive_qa_exists": {
+      "numerator": 1,
+      "denominator": 1,
+      "rationale": "README documents installation and echo example; just gradio echo_audio launches a no-login UI for microphone echo interaction."
+    },
+    "interactive_qa_runnable": {
+      "numerator": 1,
+      "denominator": 1,
+      "rationale": "No install or launch attempted under this read-only audit; documented local echo UI path covers setup, launch, no-auth access, and microphone interaction."
+    },
+    "api_schema_docs": {
+      "numerator": null,
+      "denominator": 1,
+      "rationale": "Root is a reusable library, not a deployed API service; consumers get FastAPI-generated OpenAPI when mounting streams."
+    },
+    "database_schema": {
+      "numerator": null,
+      "denominator": 1,
+      "rationale": "No database is used by the root library."
+    },
+    "structured_logging": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "Uses Python standard logging, but no structured logger dependency or dedicated logger module exists."
+    },
+    "distributed_tracing": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "No OpenTelemetry or cross-request trace/request-ID propagation found."
+    },
+    "metrics_collection": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "No configured performance metrics or telemetry backend found."
+    },
+    "code_quality_metrics": {
+      "numerator": null,
+      "denominator": 1,
+      "rationale": "No local coverage or quality metrics found; native code-scanning inspection requires unavailable admin access."
+    },
+    "error_tracking_contextualized": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "No contextualized Sentry, Bugsnag, or Rollbar integration found."
+    },
+    "alerting_configured": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "No alert rules or incident notification integrations found."
+    },
+    "deployment_observability": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "No deploy-impact dashboard link, deployment annotation, or notification integration found."
+    },
+    "health_checks": {
+      "numerator": null,
+      "denominator": 1,
+      "rationale": "Reusable library is not itself a deployed service."
+    },
+    "circuit_breakers": {
+      "numerator": null,
+      "denominator": 1,
+      "rationale": "External TURN provider calls are optional integrations in a reusable library, not a mandatory application dependency."
+    },
+    "profiling_instrumentation": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "No profiler or configured performance profiling infrastructure for audio/video streaming found."
+    },
+    "dast_scanning": {
+      "numerator": null,
+      "denominator": 1,
+      "rationale": "Root is a reusable library, not a deployed web service target for DAST."
+    },
+    "pii_handling": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "Library handles user audio/video, but no PII detection, masking, or handling procedure found."
+    },
+    "log_scrubbing": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "No configured log-redaction or sanitization mechanism found."
+    },
+    "product_analytics_instrumentation": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "No product analytics SDK or usage event instrumentation found."
+    },
+    "error_to_insight_pipeline": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "No error-tracker-to-issue integration or automated error issue creation found."
+    }
+  }
+}

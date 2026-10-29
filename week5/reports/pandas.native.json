@@ -1,0 +1,440 @@
+{
+  "repoUrl": "https://github.com/pandas-dev/pandas.git",
+  "commitHash": "0988929a21cdcc933b380871a622138eb18cc207",
+  "branch": "main",
+  "hasLocalChanges": false,
+  "hasNonRemoteCommits": false,
+  "apps": {
+    ".": {
+      "description": "pandas Python, Cython, and C/C++ data analysis library, built with Meson."
+    },
+    "web": {
+      "description": "Static pandas project website built from Markdown and templates with pandas_web.py."
+    },
+    "web/interactive_terminal": {
+      "description": "Independent browser-based pandas REPL built as a JupyterLite static application."
+    }
+  },
+  "report": {
+    "lint_config": {
+      "numerator": 2,
+      "denominator": 3,
+      "rationale": "Root Ruff and Cython lint hooks cover pandas and the Python website generator; the configuration-only JupyterLite REPL has no lint analyzer."
+    },
+    "type_check": {
+      "numerator": 1,
+      "denominator": 3,
+      "rationale": "Mypy and Pyright configure pandas source only; website and JupyterLite code have no dedicated static type check."
+    },
+    "formatter": {
+      "numerator": 2,
+      "denominator": 3,
+      "rationale": "Ruff-format, isort, Cython formatters, and Meson formatter cover library and website source; no formatter targets the JupyterLite JSON configuration."
+    },
+    "pre_commit_hooks": {
+      "numerator": 3,
+      "denominator": 3,
+      "rationale": "Root pre-commit hooks cover source in pandas and web and repository-wide text checks also cover JupyterLite configuration."
+    },
+    "strict_typing": {
+      "numerator": 1,
+      "denominator": 3,
+      "rationale": "Mypy enables disallow_untyped_defs and related strict options for pandas, with documented overrides; other applications lack strict checking."
+    },
+    "naming_consistency": {
+      "numerator": 2,
+      "denominator": 3,
+      "rationale": "Import alias conventions and pre-commit test-name checks enforce Python naming in library and website code; JupyterLite has no enforced naming rules."
+    },
+    "cyclomatic_complexity": {
+      "numerator": 0,
+      "denominator": 3,
+      "rationale": "No complexity threshold or analyzer found; Ruff's too-many-branches, statements, and related PLR091x rules are explicitly ignored."
+    },
+    "large_file_detection": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "No size or line-count hook, CI file-size gate, LFS rule, or file-size linter rule found."
+    },
+    "dead_code_detection": {
+      "numerator": 2,
+      "denominator": 3,
+      "rationale": "Root pre-commit Vulture hook checks unreachable Python code in library and website source; REPL has no applicable detector."
+    },
+    "duplicate_code_detection": {
+      "numerator": 0,
+      "denominator": 3,
+      "rationale": "No copy-paste detection tool or CI duplication gate found for any application."
+    },
+    "code_modularization": {
+      "numerator": 2,
+      "denominator": 3,
+      "rationale": "Pre-commit scripts reject private functions and imports used across Python modules in pandas and web; no REPL boundary enforcement."
+    },
+    "tech_debt_tracking": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "No configured TODO/FIXME issue-link check, technical debt scanner, or Sonar quality gate found."
+    },
+    "n_plus_one_detection": {
+      "numerator": null,
+      "denominator": 3,
+      "rationale": "The library, static website, and browser REPL are not database-backed services with ORM query paths."
+    },
+    "build_cmd_doc": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "Root README and AGENTS.md link to build guidance but do not provide an executable build command; commands are in contributing_environment.rst."
+    },
+    "deps_pinned": {
+      "numerator": 1,
+      "denominator": 1,
+      "rationale": "Committed pixi.lock resolves development dependencies; CI action references are SHA-pinned."
+    },
+    "vcs_cli_tools": {
+      "numerator": 1,
+      "denominator": 1,
+      "rationale": "GitHub CLI is installed and gh auth status exits successfully; its credential output was suppressed."
+    },
+    "automated_pr_review": {
+      "numerator": null,
+      "denominator": 1,
+      "rationale": "Local workflows show checks, not generated review comments; repository AGENTS.md bars issue/PR-related interactions, so bot reviews were not inspected."
+    },
+    "agentic_development": {
+      "numerator": 1,
+      "denominator": 1,
+      "rationale": "Recent Git history includes Claude Opus co-author trailers; AGENTS.md and the PR template define an AI contribution workflow."
+    },
+    "fast_ci_feedback": {
+      "numerator": null,
+      "denominator": 1,
+      "rationale": "PR status-check durations were not accessed because AGENTS.md bars issue/PR-related interactions; local workflow definitions cannot prove under-10-minute feedback."
+    },
+    "build_performance_tracking": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "CI has package caching and parallel jobs but no build-duration monitoring, dashboard, or build-time trend evidence."
+    },
+    "deployment_frequency": {
+      "numerator": 1,
+      "denominator": 1,
+      "rationale": "The docs-and-web workflow publishes on main pushes; observed multiple successful push runs on October 28-29, 2026."
+    },
+    "single_command_setup": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "Setup requires compiler, environment creation, and a separate Meson/Pixi build; no single fresh-clone setup command is documented."
+    },
+    "feature_flag_infrastructure": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "No deployment feature flag service or rollout toggle system found."
+    },
+    "release_notes_automation": {
+      "numerator": 1,
+      "denominator": 1,
+      "rationale": "Tag-triggered wheels workflow generates a draft GitHub release from templated notes; whatsnew entries feed release documentation."
+    },
+    "progressive_rollout": {
+      "numerator": null,
+      "denominator": 1,
+      "rationale": "Repository primarily builds a library and static sites, not deployment infrastructure with percentage-based service rollout."
+    },
+    "rollback_automation": {
+      "numerator": null,
+      "denominator": 1,
+      "rationale": "No independently operated service infrastructure is defined; automated rollback is not applicable to this source repository."
+    },
+    "monorepo_tooling": {
+      "numerator": 1,
+      "denominator": 1,
+      "rationale": "Pixi workspace environments and separate CI build tasks coordinate library, website, and JupyterLite builds."
+    },
+    "heavy_dependency_detection": {
+      "numerator": 0,
+      "denominator": 3,
+      "rationale": "No bundle size analyzer, size budget, or heavy-dependency report found; JupyterLite's unused shared-package option only optimizes output."
+    },
+    "unused_dependencies_detection": {
+      "numerator": 0,
+      "denominator": 3,
+      "rationale": "No deptry, pip-extra-reqs, or equivalent unused-dependency CI hook found. Version-sync checks do not detect unused dependencies."
+    },
+    "version_drift_detection": {
+      "numerator": null,
+      "denominator": 1,
+      "rationale": "Only one Python/Pixi build package is declared; website and REPL reuse its workspace rather than separate dependency modules."
+    },
+    "release_automation": {
+      "numerator": 1,
+      "denominator": 1,
+      "rationale": "Tag-triggered workflow publishes packages and drafts releases; main-branch documentation workflow publishes the website."
+    },
+    "dead_feature_flag_detection": {
+      "numerator": null,
+      "denominator": 1,
+      "rationale": "Not applicable because no feature flag infrastructure was found."
+    },
+    "unit_tests_exist": {
+      "numerator": 2,
+      "denominator": 3,
+      "rationale": "pandas/tests and web/tests contain pytest unit tests; JupyterLite configuration has no test suite."
+    },
+    "integration_tests_exist": {
+      "numerator": 2,
+      "denominator": 3,
+      "rationale": "The library has SQL, network, and I/O integration tests; website tests exercise end-to-end static generation. REPL has no interaction tests."
+    },
+    "unit_tests_runnable": {
+      "numerator": 1,
+      "denominator": 3,
+      "rationale": "Direct collect-only on web/tests/test_pandas_web.py exited zero with five tests. Direct collect-only on pandas/tests/test_flags.py exited four: missing compiled pandas extension and incompatible local PyArrow/NumPy. REPL has no tests."
+    },
+    "test_performance_tracking": {
+      "numerator": 2,
+      "denominator": 3,
+      "rationale": "Root pytest configuration reports the 30 slowest tests for pandas and website CI runs; REPL has no timed test suite."
+    },
+    "flaky_test_detection": {
+      "numerator": 0,
+      "denominator": 3,
+      "rationale": "No retry plugin, quarantine, or stability tracking found locally; remote PR retries were not queried under AGENTS.md."
+    },
+    "test_coverage_thresholds": {
+      "numerator": 0,
+      "denominator": 3,
+      "rationale": "Codecov receives library coverage, but project and patch status gates are explicitly off; no minimum coverage gate for any app."
+    },
+    "test_naming_conventions": {
+      "numerator": 1,
+      "denominator": 3,
+      "rationale": "Pre-commit runs scripts.check_test_naming for pandas/tests; web tests follow pytest names without a configured naming gate, and REPL lacks tests."
+    },
+    "test_isolation": {
+      "numerator": 2,
+      "denominator": 3,
+      "rationale": "pandas CI uses pytest-xdist parallel workers and web tests use per-test tmp_path fixtures; REPL has no test isolation checks."
+    },
+    "interactive_qa_exists": {
+      "numerator": 2,
+      "denominator": 3,
+      "rationale": "Contribution guide documents install/build/import for pandas; web README documents generation, local HTTP server, and viewing the site. REPL README omits serving and a concrete REPL interaction."
+    },
+    "interactive_qa_runnable": {
+      "numerator": 2,
+      "denominator": 3,
+      "rationale": "Library and website have complete documented local interaction paths, used as fallback without installing dependencies. REPL lacks a complete serve-and-drive path; pandas itself could not run here."
+    },
+    "agents_md": {
+      "numerator": 1,
+      "denominator": 1,
+      "rationale": "Root AGENTS.md documents project map, development tooling, CI entry points, workflow constraints, and detailed guide links."
+    },
+    "readme": {
+      "numerator": 1,
+      "denominator": 1,
+      "rationale": "Root README describes pandas, installation, dependencies, and source-install instructions via linked guide."
+    },
+    "automated_doc_generation": {
+      "numerator": 1,
+      "denominator": 1,
+      "rationale": "Sphinx documentation and the website generator build and publish generated docs in docbuild-and-upload.yml."
+    },
+    "skills": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "No repository SKILL.md files or configured agent skills directories found."
+    },
+    "documentation_freshness": {
+      "numerator": 1,
+      "denominator": 1,
+      "rationale": "Git history records README.md or AGENTS.md edits in October 2026, within 180 days of the audit."
+    },
+    "api_schema_docs": {
+      "numerator": null,
+      "denominator": 3,
+      "rationale": "The three applications are a Python library and static browser sites, not HTTP API services."
+    },
+    "service_flow_documented": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "No architecture diagram or dedicated service-dependency flow document found in the repository."
+    },
+    "agents_md_validation": {
+      "numerator": 1,
+      "denominator": 1,
+      "rationale": "Monthly Lychee workflow scans Markdown links repository-wide, including AGENTS.md references; it reports broken links in an issue."
+    },
+    "devcontainer": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "No .devcontainer/devcontainer.json is present."
+    },
+    "env_template": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "No .env.example or root README/AGENTS.md inventory of environment variables; website optionally uses GITHUB_TOKEN in source and CI."
+    },
+    "local_services_setup": {
+      "numerator": null,
+      "denominator": 1,
+      "rationale": "No local database or other required external service dependencies; website uses optional external public data during build."
+    },
+    "database_schema": {
+      "numerator": null,
+      "denominator": 3,
+      "rationale": "None of the applications owns a database schema; pandas can connect to user-managed databases as a library."
+    },
+    "devcontainer_runnable": {
+      "numerator": null,
+      "denominator": 1,
+      "rationale": "No devcontainer configuration or devcontainer CLI is available; a runnable container check is not applicable."
+    },
+    "structured_logging": {
+      "numerator": 0,
+      "denominator": 3,
+      "rationale": "No structured logging dependency or dedicated application logger module configured for library, website, or REPL."
+    },
+    "distributed_tracing": {
+      "numerator": 0,
+      "denominator": 3,
+      "rationale": "No request/trace ID propagation or distributed tracing instrumentation configured."
+    },
+    "metrics_collection": {
+      "numerator": 0,
+      "denominator": 3,
+      "rationale": "ASV benchmarks and CI coverage exist, but no running application telemetry or metrics collection is configured."
+    },
+    "code_quality_metrics": {
+      "numerator": 1,
+      "denominator": 3,
+      "rationale": "pandas CI uploads measured branch coverage to Codecov; website and REPL have no configured coverage or quality metrics."
+    },
+    "error_tracking_contextualized": {
+      "numerator": 0,
+      "denominator": 3,
+      "rationale": "No Sentry, Bugsnag, or Rollbar setup with contextualized production errors found."
+    },
+    "alerting_configured": {
+      "numerator": 2,
+      "denominator": 3,
+      "rationale": "CI opens an issue for persistent library nightly-build failures and for broken website links; REPL has no dedicated alert rule."
+    },
+    "runbooks_documented": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "Maintainer guide covers releases and issue triage, but no incident-response runbook or runbook pointer found."
+    },
+    "deployment_observability": {
+      "numerator": 0,
+      "denominator": 3,
+      "rationale": "No deployment-impact monitoring dashboard or deployment notification reference found for any application."
+    },
+    "health_checks": {
+      "numerator": 0,
+      "denominator": 3,
+      "rationale": "The library needs no health endpoint; neither deployed static site defines a health route, probe, or load-balancer check."
+    },
+    "circuit_breakers": {
+      "numerator": 1,
+      "denominator": 3,
+      "rationale": "Website generator falls back to cached production JSON when GitHub API returns 403; no resilience policy for REPL or library external calls."
+    },
+    "profiling_instrumentation": {
+      "numerator": 0,
+      "denominator": 3,
+      "rationale": "ASV measures benchmarks, but no profiler, flame-graph, or application profiling instrumentation is configured."
+    },
+    "branch_protection": {
+      "numerator": null,
+      "denominator": 1,
+      "rationale": "Authenticated GitHub CLI reports no repository admin permission; branch protection API validation was skipped as required."
+    },
+    "secret_scanning": {
+      "numerator": null,
+      "denominator": 1,
+      "rationale": "No local secret-scanner workflow found; native GitHub secret-scanning status requires admin access not granted to this CLI user."
+    },
+    "codeowners": {
+      "numerator": 1,
+      "denominator": 1,
+      "rationale": ".github/CODEOWNERS assigns maintainers to CI, documentation, and library paths."
+    },
+    "automated_security_review": {
+      "numerator": 1,
+      "denominator": 1,
+      "rationale": "Scheduled CodeQL Python/C++/Actions analyses and OpenSSF Scorecard publish readable code-scanning/SARIF security assessments."
+    },
+    "dependency_update_automation": {
+      "numerator": 1,
+      "denominator": 1,
+      "rationale": "Dependabot updates GitHub Actions weekly; scheduled workflow creates a PR for refreshed pixi.lock."
+    },
+    "gitignore_comprehensive": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "Gitignore covers builds, caches, IDE files, and .DS_Store, but does not exclude .env or .env.* files."
+    },
+    "dast_scanning": {
+      "numerator": 0,
+      "denominator": 3,
+      "rationale": "No DAST workflow probes the running static website or browser REPL; the library is not a deployed web service."
+    },
+    "pii_handling": {
+      "numerator": null,
+      "denominator": 3,
+      "rationale": "These applications do not collect end-user data; generic pandas user data and public maintainer profiles are not an owned PII service."
+    },
+    "privacy_compliance": {
+      "numerator": null,
+      "denominator": 1,
+      "rationale": "Library and static sites do not collect end-user data; consent and deletion infrastructure is not applicable."
+    },
+    "secrets_management": {
+      "numerator": 1,
+      "denominator": 1,
+      "rationale": "GitHub Actions injects tokens and deployment keys through secrets.* references instead of hardcoded credentials."
+    },
+    "log_scrubbing": {
+      "numerator": 0,
+      "denominator": 3,
+      "rationale": "No configured log redaction, sanitization utility, or scrubbing guidance found."
+    },
+    "min_release_age": {
+      "numerator": 1,
+      "denominator": 1,
+      "rationale": "Dependabot configuration sets cooldown.default-days: 7, delaying action dependency updates."
+    },
+    "issue_templates": {
+      "numerator": 1,
+      "denominator": 1,
+      "rationale": ".github/ISSUE_TEMPLATE contains structured bug, feature, documentation, installation, and performance templates."
+    },
+    "issue_labeling_system": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "Templates label issue types and triage state, but no consistent priority and area label taxonomy was found."
+    },
+    "backlog_health": {
+      "numerator": null,
+      "denominator": 1,
+      "rationale": "Open-issue sampling was not performed because AGENTS.md bars issue/PR-related interactions; local files cannot establish backlog health."
+    },
+    "pr_templates": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "PR template is a checklist for tests, checks, release notes, and AI disclosure, but lacks description and context sections."
+    },
+    "product_analytics_instrumentation": {
+      "numerator": 0,
+      "denominator": 3,
+      "rationale": "No Mixpanel, Amplitude, PostHog, Heap, or GA4 instrumentation found."
+    },
+    "error_to_insight_pipeline": {
+      "numerator": 2,
+      "denominator": 3,
+      "rationale": "Nightly wheel failures and documentation link-check errors automatically create or update GitHub issues; REPL has no error-to-issue integration."
+    }
+  }
+}

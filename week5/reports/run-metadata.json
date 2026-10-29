@@ -1,0 +1,95 @@
+{
+  "date": "2026-10-29",
+  "command": "droid exec --cwd <repository> --output-format stream-json --append-system-prompt <read-only assessment constraints> /readiness-report",
+  "constraints": "Do not edit repository files, install dependencies, fix findings, use unrelated connected services, or read secrets. Report inaccessible evidence honestly. Do not run memo.",
+  "pydantic_resume": "droid exec --cwd <pydantic> --session-id b3d67dc4-e6d3-4064-9d46-dca8932e2e4d --auto medium --output-format stream-json <continue the interrupted native report; bounded test collection authorized; no dependency installation or repository edits>",
+  "native_scoring": {
+    "criteria": 84,
+    "formula": "mean(numerator / denominator) over all non-null criteria",
+    "level_threshold_percent": [
+      0,
+      20,
+      40,
+      60,
+      80
+    ],
+    "source": "Scoring instructions supplied by the native /readiness-report command in Droid 0.231.0, checked in the current assessment session."
+  },
+  "records": [
+    {
+      "repository": "pydantic",
+      "commit": "dd0c36a4be235522e34659ba372c59b43b55f33e",
+      "report_id": "e9f2f79c-1d71-4a9d-b657-e9b567cea405",
+      "droid_version": "0.231.0",
+      "session_settings": [
+        {
+          "session_id": "b3d67dc4-e6d3-4064-9d46-dca8932e2e4d",
+          "model": "gpt-6-sol",
+          "reasoning_effort": "medium"
+        },
+        {
+          "session_id": "b3d67dc4-e6d3-4064-9d46-dca8932e2e4d",
+          "model": "gpt-6-sol",
+          "reasoning_effort": "medium"
+        }
+      ],
+      "native_report_sha256": "a0438b6153fc44929f4338d1d314a4b1117952f6b741b6f9023bd4860439f30c",
+      "raw_streams": [
+        {
+          "file": "pydantic.resume.stream.jsonl",
+          "sha256": "f5b601cd7fafca295aa7ae645f672ee1c94af30799395430db393174c2dee5f4"
+        },
+        {
+          "file": "pydantic.stream.jsonl",
+          "sha256": "3f5f8ccd0bae4aa59a5d136927d1e99c36bbde28cac3492a47e9e1f2775a821b"
+        }
+      ],
+      "cli_exit_code": 1,
+      "notes": "Initial run stopped at test-collection permissions. Resumed the same session with --auto medium. Native report storage returned success and all 84 results plus a final summary were emitted. The resumed CLI returned exit 1 and repeated that summary in an error event; the reason is not established."
+    },
+    {
+      "repository": "pandas",
+      "commit": "0988929a21cdcc933b380871a622138eb18cc207",
+      "report_id": "969fb368-0efe-43f3-9436-008550acbf2c",
+      "droid_version": "0.231.0",
+      "session_settings": [
+        {
+          "session_id": "46dc081c-2837-49ee-a736-2888a08fba69",
+          "model": "gpt-6-sol",
+          "reasoning_effort": "medium"
+        }
+      ],
+      "native_report_sha256": "271fc4292dc1abc09d55e8b471ae4e8baf096f6a65feced3b651652182e0e691",
+      "raw_streams": [
+        {
+          "file": "pandas.stream.jsonl",
+          "sha256": "74530ef8adb5c0a6732f4d40a171fee328fa515c0e14a46045c35fd3434d8893"
+        }
+      ],
+      "cli_exit_code": 0,
+      "notes": "Native report storage returned success and the CLI exited zero."
+    },
+    {
+      "repository": "fastrtc",
+      "commit": "59ca4f77e1669a9599c0895fd0d7c39f356bf89f",
+      "report_id": "4b85f8d7-0e2a-4431-a6d1-7f029a2fc260",
+      "droid_version": "0.231.0",
+      "session_settings": [
+        {
+          "session_id": "1df634d4-a621-4e8f-a1f1-447c5b33861c",
+          "model": "gpt-6-sol",
+          "reasoning_effort": "medium"
+        }
+      ],
+      "native_report_sha256": "1eb1466012bc95f1d5e6d8813b96cb32aac45aa2481a4428428f13473513adf2",
+      "raw_streams": [
+        {
+          "file": "fastrtc.stream.jsonl",
+          "sha256": "8c87571f8d3c0a73b011cfce1f59d62ebf2cf31132b3425579206374cf6821ac"
+        }
+      ],
+      "cli_exit_code": 0,
+      "notes": "Native report storage returned success and the CLI exited zero."
+    }
+  ]
+}

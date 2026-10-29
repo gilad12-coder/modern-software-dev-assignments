@@ -1,0 +1,569 @@
+{
+  "pydantic": {
+    "commit": "dd0c36a4be235522e34659ba372c59b43b55f33e",
+    "apps": {
+      ".": {
+        "description": "Pydantic Python data-validation library, released as its own PyPI package."
+      },
+      "pydantic-core": {
+        "description": "Independent Rust/Python validation and serialization package, built and published separately."
+      }
+    },
+    "overall": {
+      "points": "32",
+      "evaluated": 68,
+      "skipped": 16,
+      "full_pass": 28,
+      "partial": 8,
+      "failed": 32,
+      "percent": 47.058824,
+      "native_level": 3,
+      "next_level_percent": 60.0,
+      "point_deficit": "44/5",
+      "minimum_full_criterion_fixes": 9
+    },
+    "pillars": {
+      "Style & Validation": {
+        "points": "9/2",
+        "evaluated": 6,
+        "skipped": 0,
+        "full_pass": 4,
+        "partial": 1,
+        "failed": 1,
+        "percent": 75.0,
+        "not_fully_passing": [
+          "strict_typing",
+          "naming_consistency"
+        ],
+        "skipped_ids": []
+      },
+      "Build System": {
+        "points": "6",
+        "evaluated": 15,
+        "skipped": 4,
+        "full_pass": 6,
+        "partial": 0,
+        "failed": 9,
+        "percent": 40.0,
+        "not_fully_passing": [
+          "build_cmd_doc",
+          "automated_pr_review",
+          "agentic_development",
+          "fast_ci_feedback",
+          "build_performance_tracking",
+          "deployment_frequency",
+          "single_command_setup",
+          "feature_flag_infrastructure",
+          "unused_dependencies_detection"
+        ],
+        "skipped_ids": [
+          "progressive_rollout",
+          "rollback_automation",
+          "dead_feature_flag_detection",
+          "heavy_dependency_detection"
+        ]
+      },
+      "Testing": {
+        "points": "13/2",
+        "evaluated": 10,
+        "skipped": 0,
+        "full_pass": 5,
+        "partial": 3,
+        "failed": 2,
+        "percent": 65.0,
+        "not_fully_passing": [
+          "unit_tests_runnable",
+          "test_performance_tracking",
+          "flaky_test_detection",
+          "test_coverage_thresholds",
+          "test_naming_conventions"
+        ],
+        "skipped_ids": []
+      },
+      "Documentation": {
+        "points": "5",
+        "evaluated": 7,
+        "skipped": 1,
+        "full_pass": 5,
+        "partial": 0,
+        "failed": 2,
+        "percent": 71.428571,
+        "not_fully_passing": [
+          "agents_md",
+          "agents_md_validation"
+        ],
+        "skipped_ids": [
+          "api_schema_docs"
+        ]
+      },
+      "Dev Environment": {
+        "points": "0",
+        "evaluated": 2,
+        "skipped": 3,
+        "full_pass": 0,
+        "partial": 0,
+        "failed": 2,
+        "percent": 0.0,
+        "not_fully_passing": [
+          "devcontainer",
+          "env_template"
+        ],
+        "skipped_ids": [
+          "local_services_setup",
+          "devcontainer_runnable",
+          "database_schema"
+        ]
+      },
+      "Code Quality": {
+        "points": "3",
+        "evaluated": 7,
+        "skipped": 1,
+        "full_pass": 2,
+        "partial": 2,
+        "failed": 3,
+        "percent": 42.857143,
+        "not_fully_passing": [
+          "tech_debt_tracking",
+          "cyclomatic_complexity",
+          "dead_code_detection",
+          "duplicate_code_detection",
+          "code_modularization"
+        ],
+        "skipped_ids": [
+          "n_plus_one_detection"
+        ]
+      },
+      "Observability": {
+        "points": "1",
+        "evaluated": 10,
+        "skipped": 2,
+        "full_pass": 1,
+        "partial": 0,
+        "failed": 9,
+        "percent": 10.0,
+        "not_fully_passing": [
+          "runbooks_documented",
+          "structured_logging",
+          "distributed_tracing",
+          "metrics_collection",
+          "error_tracking_contextualized",
+          "alerting_configured",
+          "deployment_observability",
+          "product_analytics_instrumentation",
+          "error_to_insight_pipeline"
+        ],
+        "skipped_ids": [
+          "health_checks",
+          "circuit_breakers"
+        ]
+      },
+      "Security & Governance": {
+        "points": "6",
+        "evaluated": 11,
+        "skipped": 5,
+        "full_pass": 5,
+        "partial": 2,
+        "failed": 4,
+        "percent": 54.545455,
+        "not_fully_passing": [
+          "codeowners",
+          "gitignore_comprehensive",
+          "issue_labeling_system",
+          "pr_templates",
+          "pii_handling",
+          "log_scrubbing"
+        ],
+        "skipped_ids": [
+          "branch_protection",
+          "secret_scanning",
+          "automated_security_review",
+          "privacy_compliance",
+          "dast_scanning"
+        ]
+      }
+    }
+  },
+  "pandas": {
+    "commit": "0988929a21cdcc933b380871a622138eb18cc207",
+    "apps": {
+      ".": {
+        "description": "pandas Python, Cython, and C/C++ data analysis library, built with Meson."
+      },
+      "web": {
+        "description": "Static pandas project website built from Markdown and templates with pandas_web.py."
+      },
+      "web/interactive_terminal": {
+        "description": "Independent browser-based pandas REPL built as a JupyterLite static application."
+      }
+    },
+    "overall": {
+      "points": "89/3",
+      "evaluated": 68,
+      "skipped": 16,
+      "full_pass": 19,
+      "partial": 19,
+      "failed": 30,
+      "percent": 43.627451,
+      "native_level": 3,
+      "next_level_percent": 60.0,
+      "point_deficit": "167/15",
+      "minimum_full_criterion_fixes": 12
+    },
+    "pillars": {
+      "Style & Validation": {
+        "points": "11/3",
+        "evaluated": 6,
+        "skipped": 0,
+        "full_pass": 1,
+        "partial": 5,
+        "failed": 0,
+        "percent": 61.111111,
+        "not_fully_passing": [
+          "lint_config",
+          "type_check",
+          "formatter",
+          "strict_typing",
+          "naming_consistency"
+        ],
+        "skipped_ids": []
+      },
+      "Build System": {
+        "points": "7",
+        "evaluated": 13,
+        "skipped": 6,
+        "full_pass": 7,
+        "partial": 0,
+        "failed": 6,
+        "percent": 53.846154,
+        "not_fully_passing": [
+          "build_cmd_doc",
+          "build_performance_tracking",
+          "single_command_setup",
+          "feature_flag_infrastructure",
+          "heavy_dependency_detection",
+          "unused_dependencies_detection"
+        ],
+        "skipped_ids": [
+          "automated_pr_review",
+          "fast_ci_feedback",
+          "progressive_rollout",
+          "rollback_automation",
+          "version_drift_detection",
+          "dead_feature_flag_detection"
+        ]
+      },
+      "Testing": {
+        "points": "14/3",
+        "evaluated": 10,
+        "skipped": 0,
+        "full_pass": 0,
+        "partial": 8,
+        "failed": 2,
+        "percent": 46.666667,
+        "not_fully_passing": [
+          "unit_tests_exist",
+          "integration_tests_exist",
+          "unit_tests_runnable",
+          "test_performance_tracking",
+          "flaky_test_detection",
+          "test_coverage_thresholds",
+          "test_naming_conventions",
+          "test_isolation",
+          "interactive_qa_exists",
+          "interactive_qa_runnable"
+        ],
+        "skipped_ids": []
+      },
+      "Documentation": {
+        "points": "5",
+        "evaluated": 7,
+        "skipped": 1,
+        "full_pass": 5,
+        "partial": 0,
+        "failed": 2,
+        "percent": 71.428571,
+        "not_fully_passing": [
+          "skills",
+          "service_flow_documented"
+        ],
+        "skipped_ids": [
+          "api_schema_docs"
+        ]
+      },
+      "Dev Environment": {
+        "points": "0",
+        "evaluated": 2,
+        "skipped": 3,
+        "full_pass": 0,
+        "partial": 0,
+        "failed": 2,
+        "percent": 0.0,
+        "not_fully_passing": [
+          "devcontainer",
+          "env_template"
+        ],
+        "skipped_ids": [
+          "local_services_setup",
+          "devcontainer_runnable",
+          "database_schema"
+        ]
+      },
+      "Code Quality": {
+        "points": "5/3",
+        "evaluated": 7,
+        "skipped": 1,
+        "full_pass": 0,
+        "partial": 3,
+        "failed": 4,
+        "percent": 23.809524,
+        "not_fully_passing": [
+          "large_file_detection",
+          "tech_debt_tracking",
+          "cyclomatic_complexity",
+          "dead_code_detection",
+          "duplicate_code_detection",
+          "code_modularization",
+          "code_quality_metrics"
+        ],
+        "skipped_ids": [
+          "n_plus_one_detection"
+        ]
+      },
+      "Observability": {
+        "points": "5/3",
+        "evaluated": 12,
+        "skipped": 0,
+        "full_pass": 0,
+        "partial": 3,
+        "failed": 9,
+        "percent": 13.888889,
+        "not_fully_passing": [
+          "runbooks_documented",
+          "structured_logging",
+          "distributed_tracing",
+          "metrics_collection",
+          "error_tracking_contextualized",
+          "alerting_configured",
+          "deployment_observability",
+          "health_checks",
+          "circuit_breakers",
+          "profiling_instrumentation",
+          "product_analytics_instrumentation",
+          "error_to_insight_pipeline"
+        ],
+        "skipped_ids": []
+      },
+      "Security & Governance": {
+        "points": "6",
+        "evaluated": 11,
+        "skipped": 5,
+        "full_pass": 6,
+        "partial": 0,
+        "failed": 5,
+        "percent": 54.545455,
+        "not_fully_passing": [
+          "gitignore_comprehensive",
+          "issue_labeling_system",
+          "pr_templates",
+          "dast_scanning",
+          "log_scrubbing"
+        ],
+        "skipped_ids": [
+          "branch_protection",
+          "secret_scanning",
+          "privacy_compliance",
+          "backlog_health",
+          "pii_handling"
+        ]
+      }
+    }
+  },
+  "fastrtc": {
+    "commit": "59ca4f77e1669a9599c0895fd0d7c39f356bf89f",
+    "apps": {},
+    "overall": {
+      "points": "17",
+      "evaluated": 67,
+      "skipped": 17,
+      "full_pass": 17,
+      "partial": 0,
+      "failed": 50,
+      "percent": 25.373134,
+      "native_level": 2,
+      "next_level_percent": 40.0,
+      "point_deficit": "49/5",
+      "minimum_full_criterion_fixes": 10
+    },
+    "pillars": {
+      "Style & Validation": {
+        "points": "3",
+        "evaluated": 6,
+        "skipped": 0,
+        "full_pass": 3,
+        "partial": 0,
+        "failed": 3,
+        "percent": 50.0,
+        "not_fully_passing": [
+          "pre_commit_hooks",
+          "strict_typing",
+          "naming_consistency"
+        ],
+        "skipped_ids": []
+      },
+      "Build System": {
+        "points": "5",
+        "evaluated": 15,
+        "skipped": 4,
+        "full_pass": 5,
+        "partial": 0,
+        "failed": 10,
+        "percent": 33.333333,
+        "not_fully_passing": [
+          "build_cmd_doc",
+          "deps_pinned",
+          "automated_pr_review",
+          "build_performance_tracking",
+          "deployment_frequency",
+          "feature_flag_infrastructure",
+          "release_notes_automation",
+          "version_drift_detection",
+          "heavy_dependency_detection",
+          "unused_dependencies_detection"
+        ],
+        "skipped_ids": [
+          "progressive_rollout",
+          "rollback_automation",
+          "monorepo_tooling",
+          "dead_feature_flag_detection"
+        ]
+      },
+      "Testing": {
+        "points": "5",
+        "evaluated": 10,
+        "skipped": 0,
+        "full_pass": 5,
+        "partial": 0,
+        "failed": 5,
+        "percent": 50.0,
+        "not_fully_passing": [
+          "unit_tests_runnable",
+          "test_performance_tracking",
+          "flaky_test_detection",
+          "test_coverage_thresholds",
+          "test_naming_conventions"
+        ],
+        "skipped_ids": []
+      },
+      "Documentation": {
+        "points": "3",
+        "evaluated": 7,
+        "skipped": 1,
+        "full_pass": 3,
+        "partial": 0,
+        "failed": 4,
+        "percent": 42.857143,
+        "not_fully_passing": [
+          "agents_md",
+          "skills",
+          "documentation_freshness",
+          "agents_md_validation"
+        ],
+        "skipped_ids": [
+          "api_schema_docs"
+        ]
+      },
+      "Dev Environment": {
+        "points": "0",
+        "evaluated": 2,
+        "skipped": 3,
+        "full_pass": 0,
+        "partial": 0,
+        "failed": 2,
+        "percent": 0.0,
+        "not_fully_passing": [
+          "devcontainer",
+          "env_template"
+        ],
+        "skipped_ids": [
+          "local_services_setup",
+          "devcontainer_runnable",
+          "database_schema"
+        ]
+      },
+      "Code Quality": {
+        "points": "1",
+        "evaluated": 6,
+        "skipped": 2,
+        "full_pass": 1,
+        "partial": 0,
+        "failed": 5,
+        "percent": 16.666667,
+        "not_fully_passing": [
+          "large_file_detection",
+          "tech_debt_tracking",
+          "cyclomatic_complexity",
+          "duplicate_code_detection",
+          "code_modularization"
+        ],
+        "skipped_ids": [
+          "n_plus_one_detection",
+          "code_quality_metrics"
+        ]
+      },
+      "Observability": {
+        "points": "0",
+        "evaluated": 10,
+        "skipped": 2,
+        "full_pass": 0,
+        "partial": 0,
+        "failed": 10,
+        "percent": 0.0,
+        "not_fully_passing": [
+          "runbooks_documented",
+          "structured_logging",
+          "distributed_tracing",
+          "metrics_collection",
+          "error_tracking_contextualized",
+          "alerting_configured",
+          "deployment_observability",
+          "profiling_instrumentation",
+          "product_analytics_instrumentation",
+          "error_to_insight_pipeline"
+        ],
+        "skipped_ids": [
+          "health_checks",
+          "circuit_breakers"
+        ]
+      },
+      "Security & Governance": {
+        "points": "0",
+        "evaluated": 11,
+        "skipped": 5,
+        "full_pass": 0,
+        "partial": 0,
+        "failed": 11,
+        "percent": 0.0,
+        "not_fully_passing": [
+          "codeowners",
+          "dependency_update_automation",
+          "gitignore_comprehensive",
+          "secrets_management",
+          "min_release_age",
+          "issue_templates",
+          "issue_labeling_system",
+          "backlog_health",
+          "pr_templates",
+          "pii_handling",
+          "log_scrubbing"
+        ],
+        "skipped_ids": [
+          "branch_protection",
+          "secret_scanning",
+          "automated_security_review",
+          "privacy_compliance",
+          "dast_scanning"
+        ]
+      }
+    }
+  }
+}

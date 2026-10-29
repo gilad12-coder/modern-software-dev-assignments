@@ -1,0 +1,102 @@
+{
+  "Style & Validation": [
+    "lint_config",
+    "type_check",
+    "formatter",
+    "pre_commit_hooks",
+    "strict_typing",
+    "naming_consistency"
+  ],
+  "Build System": [
+    "build_cmd_doc",
+    "deps_pinned",
+    "vcs_cli_tools",
+    "automated_pr_review",
+    "agentic_development",
+    "fast_ci_feedback",
+    "build_performance_tracking",
+    "deployment_frequency",
+    "single_command_setup",
+    "feature_flag_infrastructure",
+    "release_notes_automation",
+    "progressive_rollout",
+    "rollback_automation",
+    "monorepo_tooling",
+    "version_drift_detection",
+    "release_automation",
+    "dead_feature_flag_detection",
+    "heavy_dependency_detection",
+    "unused_dependencies_detection"
+  ],
+  "Testing": [
+    "unit_tests_exist",
+    "integration_tests_exist",
+    "unit_tests_runnable",
+    "test_performance_tracking",
+    "flaky_test_detection",
+    "test_coverage_thresholds",
+    "test_naming_conventions",
+    "test_isolation",
+    "interactive_qa_exists",
+    "interactive_qa_runnable"
+  ],
+  "Documentation": [
+    "agents_md",
+    "readme",
+    "automated_doc_generation",
+    "skills",
+    "documentation_freshness",
+    "service_flow_documented",
+    "agents_md_validation",
+    "api_schema_docs"
+  ],
+  "Dev Environment": [
+    "devcontainer",
+    "env_template",
+    "local_services_setup",
+    "devcontainer_runnable",
+    "database_schema"
+  ],
+  "Code Quality": [
+    "large_file_detection",
+    "tech_debt_tracking",
+    "cyclomatic_complexity",
+    "dead_code_detection",
+    "duplicate_code_detection",
+    "code_modularization",
+    "n_plus_one_detection",
+    "code_quality_metrics"
+  ],
+  "Observability": [
+    "runbooks_documented",
+    "structured_logging",
+    "distributed_tracing",
+    "metrics_collection",
+    "error_tracking_contextualized",
+    "alerting_configured",
+    "deployment_observability",
+    "health_checks",
+    "circuit_breakers",
+    "profiling_instrumentation",
+    "product_analytics_instrumentation",
+    "error_to_insight_pipeline"
+  ],
+  "Security & Governance": [
+    "branch_protection",
+    "secret_scanning",
+    "codeowners",
+    "automated_security_review",
+    "dependency_update_automation",
+    "gitignore_comprehensive",
+    "privacy_compliance",
+    "secrets_management",
+    "min_release_age",
+    "issue_templates",
+    "issue_labeling_system",
+    "backlog_health",
+    "pr_templates",
+    "dast_scanning",
+    "pii_handling",
+    "log_scrubbing"
+  ]
+}

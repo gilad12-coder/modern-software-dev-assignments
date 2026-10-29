@@ -1,0 +1,437 @@
+{
+  "repoUrl": "https://github.com/pydantic/pydantic.git",
+  "commitHash": "dd0c36a4be235522e34659ba372c59b43b55f33e",
+  "branch": "main",
+  "hasLocalChanges": false,
+  "hasNonRemoteCommits": false,
+  "apps": {
+    ".": {
+      "description": "Pydantic Python data-validation library, released as its own PyPI package."
+    },
+    "pydantic-core": {
+      "description": "Independent Rust/Python validation and serialization package, built and published separately."
+    }
+  },
+  "report": {
+    "large_file_detection": {
+      "numerator": 1,
+      "denominator": 1,
+      "rationale": "pydantic-core/.pre-commit-config.yaml enables check-added-large-files."
+    },
+    "tech_debt_tracking": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "No enforced TODO/FIXME scanning or debt tracking; occasional issue-linked comments do not constitute automation."
+    },
+    "build_cmd_doc": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "Root README and AGENTS.md do not give a build command; CONTRIBUTING.md and pydantic-core/README.md do."
+    },
+    "deps_pinned": {
+      "numerator": 1,
+      "denominator": 1,
+      "rationale": "Both uv.lock files and pydantic-core/Cargo.lock are committed; CI uses frozen sync and locked Cargo builds."
+    },
+    "vcs_cli_tools": {
+      "numerator": 1,
+      "denominator": 1,
+      "rationale": "GitHub CLI is installed and authenticated; repository API and PR reads succeeded."
+    },
+    "automated_pr_review": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "Recent PRs showed no automated review authors/comments; coverage status and assignment comments do not generate code reviews."
+    },
+    "agentic_development": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "No AI coding-agent author/co-author in last 100 commits or agent-run development workflow; a Pydantic usage skill is not active agent development."
+    },
+    "fast_ci_feedback": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "Recent merged PR checks usually span over 10 minutes; 20 sampled CI durations include many 12–26 minute runs."
+    },
+    "build_performance_tracking": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "CI caches and PGO optimize builds, but no explicit build-duration monitoring or exported build timing was found."
+    },
+    "deployment_frequency": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "Tag-triggered PyPI release automation exists, but the latest release history does not show multiple releases each week; no deploy workflow runs found."
+    },
+    "single_command_setup": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "Fresh-clone development setup is in CONTRIBUTING.md and the core README, not root README, AGENTS.md, or a skill."
+    },
+    "feature_flag_infrastructure": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "No runtime feature flag platform or custom toggle infrastructure was found."
+    },
+    "release_notes_automation": {
+      "numerator": 1,
+      "denominator": 1,
+      "rationale": "GitHub release.yml classifies changelog entries; release/prepare.py assembles HISTORY.md and release/push.py opens draft releases."
+    },
+    "progressive_rollout": {
+      "numerator": null,
+      "denominator": 1,
+      "rationale": "Not an infrastructure repository; both applications are distributable libraries."
+    },
+    "rollback_automation": {
+      "numerator": null,
+      "denominator": 1,
+      "rationale": "Not an infrastructure repository; library versions publish to PyPI rather than run as a managed deployment."
+    },
+    "monorepo_tooling": {
+      "numerator": 1,
+      "denominator": 1,
+      "rationale": "Root [tool.uv.workspace] lists pydantic-core and CI uses uv --all-packages."
+    },
+    "version_drift_detection": {
+      "numerator": 1,
+      "denominator": 1,
+      "rationale": "Pydantic pins pydantic-core exactly and tests/test_version.py asserts the runtime core version matches the companion version constant in CI."
+    },
+    "release_automation": {
+      "numerator": 1,
+      "denominator": 1,
+      "rationale": "Tag-triggered ci.yml builds, attests, and publishes pydantic-core and Pydantic to PyPI."
+    },
+    "dead_feature_flag_detection": {
+      "numerator": null,
+      "denominator": 1,
+      "rationale": "Prerequisite feature flag infrastructure is absent."
+    },
+    "agents_md": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "Root AGENTS.md is over 100 characters but only points to CONTRIBUTING.md; it omits setup, build, test and project conventions."
+    },
+    "readme": {
+      "numerator": 1,
+      "denominator": 1,
+      "rationale": "Root README.md includes pip installation and a complete validation example."
+    },
+    "automated_doc_generation": {
+      "numerator": 1,
+      "denominator": 1,
+      "rationale": "mkdocs.yml and mkdocstrings generate API documentation; CI builds and dispatches deployment of docs."
+    },
+    "skills": {
+      "numerator": 1,
+      "denominator": 1,
+      "rationale": ".agents/skills/pydantic/SKILL.md has valid name/description frontmatter and substantial prompt content."
+    },
+    "documentation_freshness": {
+      "numerator": 1,
+      "denominator": 1,
+      "rationale": "CONTRIBUTING.md changed 2026-10-26 and README.md changed 2026-10-13, within 180 days."
+    },
+    "service_flow_documented": {
+      "numerator": 1,
+      "denominator": 1,
+      "rationale": "docs/internals/architecture.md documents model creation, core schema exchange and validation/serialization across packages."
+    },
+    "agents_md_validation": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "No CI or pre-commit check tests the root AGENTS.md guidance for accuracy."
+    },
+    "devcontainer": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "No .devcontainer/devcontainer.json was found."
+    },
+    "env_template": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "No .env.example or environment-variable setup in root README/AGENTS.md; libraries need no application credentials, but rubric requires a template or documentation."
+    },
+    "local_services_setup": {
+      "numerator": null,
+      "denominator": 1,
+      "rationale": "Core library development and unit tests need no external local service; third-party integrations are separate CI tests."
+    },
+    "devcontainer_runnable": {
+      "numerator": null,
+      "denominator": 1,
+      "rationale": "The devcontainer CLI is unavailable, and no devcontainer is configured."
+    },
+    "runbooks_documented": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "No incident-response runbook or dedicated playbook pointer was found; security disclosure policy and release instructions are not incident runbooks."
+    },
+    "branch_protection": {
+      "numerator": null,
+      "denominator": 1,
+      "rationale": "Authenticated GitHub API reports admin=false, so branch protection rules cannot be verified under the rubric."
+    },
+    "secret_scanning": {
+      "numerator": null,
+      "denominator": 1,
+      "rationale": "No local committed-secret scanner was found; admin access is unavailable to verify native GitHub secret scanning."
+    },
+    "codeowners": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "No CODEOWNERS file was found in root or .github."
+    },
+    "automated_security_review": {
+      "numerator": null,
+      "denominator": 1,
+      "rationale": "No readable automated security assessment found; admin access is unavailable to inspect GitHub code scanning."
+    },
+    "dependency_update_automation": {
+      "numerator": 1,
+      "denominator": 1,
+      "rationale": ".github/dependabot.yml schedules GitHub Actions and Cargo update PRs; recent Dependabot commits confirm activity."
+    },
+    "gitignore_comprehensive": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "Root .gitignore covers build, IDE, caches and .DS_Store, but does not exclude .env files."
+    },
+    "privacy_compliance": {
+      "numerator": null,
+      "denominator": 1,
+      "rationale": "Both are libraries without direct collection or retention of end-user data."
+    },
+    "secrets_management": {
+      "numerator": 1,
+      "denominator": 1,
+      "rationale": "Release/docs workflows use GitHub Actions secrets and variables rather than embedding production credentials."
+    },
+    "min_release_age": {
+      "numerator": 1,
+      "denominator": 1,
+      "rationale": ".github/dependabot.yml sets cooldown.default-days=7 for GitHub Actions and Cargo updates."
+    },
+    "issue_templates": {
+      "numerator": 1,
+      "denominator": 1,
+      "rationale": ".github/ISSUE_TEMPLATE has structured V1/V2 bug and feature request forms."
+    },
+    "issue_labeling_system": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "Issue labels include bug, feature and topical labels, but no consistent priority tier labels were found."
+    },
+    "backlog_health": {
+      "numerator": 1,
+      "denominator": 1,
+      "rationale": "44 of the latest 50 open issues have a title longer than 10 characters and at least one label; none were older than one year."
+    },
+    "pr_templates": {
+      "numerator": 0,
+      "denominator": 1,
+      "rationale": "The PR template has only a change summary and assignment checkbox; it lacks testing performed and contextual sections."
+    },
+    "lint_config": {
+      "numerator": 2,
+      "denominator": 2,
+      "rationale": "Both pyproject.toml files configure Ruff; pydantic-core also runs cargo clippy in Makefile/CI."
+    },
+    "type_check": {
+      "numerator": 2,
+      "denominator": 2,
+      "rationale": "Both packages configure Pyright; core Rust also compiles and runs Clippy in CI."
+    },
+    "formatter": {
+      "numerator": 2,
+      "denominator": 2,
+      "rationale": "Both packages use Ruff format; core also runs cargo fmt."
+    },
+    "pre_commit_hooks": {
+      "numerator": 2,
+      "denominator": 2,
+      "rationale": "Root and core have .pre-commit-config.yaml quality hooks; both make install targets install them."
+    },
+    "strict_typing": {
+      "numerator": 0,
+      "denominator": 2,
+      "rationale": "Pyright strict is limited to root tests/test_pipeline.py; neither package enables strict checking broadly across its Python source."
+    },
+    "naming_consistency": {
+      "numerator": 1,
+      "denominator": 2,
+      "rationale": "Core Rust compiles with Clippy pedantic and warnings as errors, enforcing naming; root Ruff does not enable naming rules."
+    },
+    "cyclomatic_complexity": {
+      "numerator": 1,
+      "denominator": 2,
+      "rationale": "Core Ruff C90 and max-complexity=13 enforce complexity; root sets a max-complexity value but does not select C90."
+    },
+    "dead_code_detection": {
+      "numerator": 1,
+      "denominator": 2,
+      "rationale": "Core Rust Clippy runs with -D warnings, including dead_code; no Vulture/dead-style analysis for root Python modules."
+    },
+    "duplicate_code_detection": {
+      "numerator": 0,
+      "denominator": 2,
+      "rationale": "No CPD, jscpd, SonarQube or equivalent duplicate-code check for either package."
+    },
+    "code_modularization": {
+      "numerator": 0,
+      "denominator": 2,
+      "rationale": "The packages have modules and directories, but no import-linter or architectural boundary enforcement was found."
+    },
+    "n_plus_one_detection": {
+      "numerator": null,
+      "denominator": 2,
+      "rationale": "Neither validation library owns database queries or an ORM."
+    },
+    "heavy_dependency_detection": {
+      "numerator": null,
+      "denominator": 2,
+      "rationale": "Neither package is a bundled web application."
+    },
+    "unused_dependencies_detection": {
+      "numerator": 0,
+      "denominator": 2,
+      "rationale": "No deptry, pip-extra-reqs, cargo-udeps or CI unused-dependency analysis was found."
+    },
+    "unit_tests_exist": {
+      "numerator": 2,
+      "denominator": 2,
+      "rationale": "Root tests/test_*.py and pydantic-core/tests/test_*.py contain numerous unit tests."
+    },
+    "integration_tests_exist": {
+      "numerator": 2,
+      "denominator": 2,
+      "rationale": "Root CI runs third-party and plugin integration tests; core tests exercise its Rust-backed Python API and cross-package integration."
+    },
+    "unit_tests_runnable": {
+      "numerator": 1,
+      "denominator": 2,
+      "rationale": "Core: python -B -m pytest --collect-only -p no:cacheprovider tests/test_isinstance.py exited zero, collecting 3. Root: identical bounded collection of tests/test_abc.py exited 4 due installed pydantic-core 2.41.5 versus required 2.50.0; no install permitted."
+    },
+    "test_performance_tracking": {
+      "numerator": 1,
+      "denominator": 2,
+      "rationale": "Root Makefile/CI runs pytest --durations=10 and uploads coverage artifacts; core CI runs tests but has no explicit test-duration report retention."
+    },
+    "flaky_test_detection": {
+      "numerator": 0,
+      "denominator": 2,
+      "rationale": "Duplicate CI check names occur on a few PRs, but no documented retry/quarantine or tracked flaky-test metrics were found."
+    },
+    "test_coverage_thresholds": {
+      "numerator": 1,
+      "denominator": 2,
+      "rationale": "Root upload-previews.yml sets SMOKESHOW_GITHUB_COVERAGE_THRESHOLD=91; core Codecov status checks are disabled."
+    },
+    "test_naming_conventions": {
+      "numerator": 0,
+      "denominator": 2,
+      "rationale": "Both suites conventionally name test_*.py, but neither pytest configuration explicitly enforces a filename pattern."
+    },
+    "test_isolation": {
+      "numerator": 2,
+      "denominator": 2,
+      "rationale": "Root Makefile and CI support pytest --parallel-threads; core has temporary-workspace and autouse test fixtures and pytest-run-parallel installed."
+    },
+    "interactive_qa_exists": {
+      "numerator": 2,
+      "denominator": 2,
+      "rationale": "Root README installs Pydantic and validates a User model; core README covers make install and direct SchemaValidator validation, without an auth or service gate."
+    },
+    "interactive_qa_runnable": {
+      "numerator": 2,
+      "denominator": 2,
+      "rationale": "Dependency installation was barred in this read-only audit; both documented install-and-validate examples give complete fallback interaction paths. Root local collection failure reflects mismatched preinstalled core."
+    },
+    "api_schema_docs": {
+      "numerator": null,
+      "denominator": 2,
+      "rationale": "Both are libraries, not hosted service APIs; core schema and generated JSON Schema are not OpenAPI service specifications."
+    },
+    "database_schema": {
+      "numerator": null,
+      "denominator": 2,
+      "rationale": "Neither library owns a database schema."
+    },
+    "structured_logging": {
+      "numerator": 0,
+      "denominator": 2,
+      "rationale": "Neither package depends on a structured logging library nor ships a dedicated logger module."
+    },
+    "distributed_tracing": {
+      "numerator": 0,
+      "denominator": 2,
+      "rationale": "Logfire docs show optional downstream instrumentation, but neither package configures its own trace/request ID propagation."
+    },
+    "metrics_collection": {
+      "numerator": 0,
+      "denominator": 2,
+      "rationale": "Logfire integration examples describe metrics for user applications, but there is no package-level telemetry instrumentation."
+    },
+    "code_quality_metrics": {
+      "numerator": 2,
+      "denominator": 2,
+      "rationale": "Root CI combines and comments on coverage with a threshold; core has Codecov reporting and benchmark dashboards."
+    },
+    "error_tracking_contextualized": {
+      "numerator": 0,
+      "denominator": 2,
+      "rationale": "Neither package configures Sentry, Bugsnag or Rollbar with contextual production error reporting."
+    },
+    "alerting_configured": {
+      "numerator": 0,
+      "denominator": 2,
+      "rationale": "No configured alert rule or on-call integration for either library; docs describe optional Logfire alerts for consumer apps."
+    },
+    "deployment_observability": {
+      "numerator": 0,
+      "denominator": 2,
+      "rationale": "Release CI exists, but package-specific deployment impact dashboards or notifications are not documented."
+    },
+    "health_checks": {
+      "numerator": null,
+      "denominator": 2,
+      "rationale": "Neither package is a deployed service needing a health route or readiness probe."
+    },
+    "circuit_breakers": {
+      "numerator": null,
+      "denominator": 2,
+      "rationale": "Validation libraries have no application-owned external service dependency requiring a circuit breaker."
+    },
+    "profiling_instrumentation": {
+      "numerator": 2,
+      "denominator": 2,
+      "rationale": "CodSpeed profiles both packages' benchmarks in CI; core README also documents flamegraph profiling."
+    },
+    "dast_scanning": {
+      "numerator": null,
+      "denominator": 2,
+      "rationale": "Neither application is a deployed web service."
+    },
+    "pii_handling": {
+      "numerator": 1,
+      "denominator": 2,
+      "rationale": "Root docs/errors/troubleshooting.md documents sensitive-value scrubbing for Logfire validation records; core has no package-specific PII-handling guidance."
+    },
+    "log_scrubbing": {
+      "numerator": 1,
+      "denominator": 2,
+      "rationale": "Root docs explicitly show Logfire ScrubbingOptions for redacting error inputs; core has no equivalent log-scrubbing pattern."
+    },
+    "product_analytics_instrumentation": {
+      "numerator": 0,
+      "denominator": 2,
+      "rationale": "No Mixpanel, Amplitude, PostHog, Heap or GA4 instrumentation in either library."
+    },
+    "error_to_insight_pipeline": {
+      "numerator": 0,
+      "denominator": 2,
+      "rationale": "No configured production error tracker that files issues automatically for either package."
+    }
+  }
+}

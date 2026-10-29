@@ -1,0 +1,92 @@
+{
+  "collected_at_utc": "2026-10-29T20:57:34.665611+00:00",
+  "droid_version": "0.231.0",
+  "repositories": [
+    {
+      "full_name": "pydantic/pydantic",
+      "html_url": "https://github.com/pydantic/pydantic",
+      "created_at": "2017-05-03T21:23:58Z",
+      "pushed_at": "2026-10-29T20:21:29Z",
+      "stargazers_count": 29232,
+      "size": 472355,
+      "default_branch": "main",
+      "language": "Python",
+      "commit": "dd0c36a4be235522e34659ba372c59b43b55f33e",
+      "commit_date": "2026-10-29T18:44:08Z",
+      "branch": "main",
+      "status": "",
+      "tracked_files": 872,
+      "tracked_python_files": 466,
+      "tracked_python_lines": 181487,
+      "recent_100_nonmerge_commits_distinct_authors": 22,
+      "recent_100_nonmerge_commits_top_author_count": 60,
+      "language_bytes": {
+        "Python": 6381920,
+        "Rust": 1342695,
+        "Makefile": 9760,
+        "JavaScript": 4369,
+        "HTML": 2544,
+        "Shell": 2167
+      }
+    },
+    {
+      "full_name": "pandas-dev/pandas",
+      "html_url": "https://github.com/pandas-dev/pandas",
+      "created_at": "2010-08-24T01:37:33Z",
+      "pushed_at": "2026-10-29T17:34:32Z",
+      "stargazers_count": 50252,
+      "size": 420546,
+      "default_branch": "main",
+      "language": "Python",
+      "commit": "0988929a21cdcc933b380871a622138eb18cc207",
+      "commit_date": "2026-10-29T10:34:31-07:00",
+      "branch": "main",
+      "status": "",
+      "tracked_files": 2688,
+      "tracked_python_files": 1546,
+      "tracked_python_lines": 746288,
+      "recent_100_nonmerge_commits_distinct_authors": 21,
+      "recent_100_nonmerge_commits_top_author_count": 53,
+      "language_bytes": {
+        "Python": 25817894,
+        "Cython": 1842166,
+        "C": 353370,
+        "HTML": 285582,
+        "C++": 108780,
+        "Meson": 16558,
+        "CSS": 9371,
+        "Go Template": 8769,
+        "Shell": 2647,
+        "XSLT": 1196,
+        "Smarty": 127
+      }
+    },
+    {
+      "full_name": "gradio-app/fastrtc",
+      "html_url": "https://github.com/gradio-app/fastrtc",
+      "created_at": "2024-09-25T16:19:19Z",
+      "pushed_at": "2026-10-21T18:03:56Z",
+      "stargazers_count": 4636,
+      "size": 4884,
+      "default_branch": "main",
+      "language": "JavaScript",
+      "commit": "59ca4f77e1669a9599c0895fd0d7c39f356bf89f",
+      "commit_date": "2026-10-21T11:03:15-07:00",
+      "branch": "main",
+      "status": "",
+      "tracked_files": 264,
+      "tracked_python_files": 55,
+      "tracked_python_lines": 10712,
+      "recent_100_nonmerge_commits_distinct_authors": 23,
+      "recent_100_nonmerge_commits_top_author_count": 64,
+      "language_bytes": {
+        "JavaScript": 4043811,
+        "Python": 247779,
+        "Svelte": 73463,
+        "TypeScript": 10618,
+        "HTML": 3758,
+        "Just": 2300
+      }
+    }
+  ]
+}
