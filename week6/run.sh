@@ -1,22 +1,41 @@
 #!/usr/bin/env bash
-# Entry point. The grader runs `./run.sh task.md` from this directory, with no
-# terminal attached and nobody to answer questions. When this script exits,
-# app/services/api, app/services/router and app/services/worker are scored,
-# and so is out/impact.json.
-#
-# This is the baseline: one Claude Code call on the medium model with default
-# settings. Change anything you like.
-#
-# --output-format stream-json --verbose prints every turn as it happens, so
-# practice.py's agent.log has the whole session even if the run is stopped at
-# the time limit. It changes only what is printed, not what is sent to the model.
 set -euo pipefail
 
-TASK_FILE="${1:?usage: ./run.sh <task-file>}"
-cd "$(dirname "$0")"
+task_file="${1:?usage: ./run.sh <task-file>}"
+cd -- "$(dirname -- "$0")"
 
-claude -p "$(cat "$TASK_FILE")" \
-  --model claude-sonnet-5-5 \
-  --effort high \
-  --permission-mode bypassPermissions \
-  --output-format stream-json --verbose
+if [[ -z ${CS146S_GATEWAY_URL:-} || ${ANTHROPIC_BASE_URL:-} != "${CS146S_GATEWAY_URL:-}/anthropic" ]]; then
+  printf '%s\n' 'Start this entry point through the course practice runner or grader.' >&2
+  exit 1
+fi
+
+# Practice can use a subscription login. Safe mode keeps authentication and
+# skips personal instructions, hooks, plugins, and memory.
+export CLAUDE_CODE_SAFE_MODE=1
+export CLAUDE_CODE_PROMPT_CACHE_TTL=5m
+
+ticket=$(cat -- "$task_file")
+
+run_stage() {
+  local model=$1
+  local prompt_file=$2
+  local instruction=$3
+  claude -p "$instruction"$'\n\n'"$ticket" \
+    --model "$model" \
+    --effort high \
+    --system-prompt "$(cat -- "$prompt_file")" \
+    --tools 'Bash,Edit,Glob,Grep,Read,Write' \
+    --strict-mcp-config \
+    --no-session-persistence \
+    --permission-mode bypassPermissions \
+    --output-format stream-json --verbose
+}
+
+report_status=0
+run_stage claude-haiku-5-5 prompts/impact.md 'Complete only the impact report for this ticket.' || report_status=$?
+if (( report_status == 0 )) && ! python3 -m json.tool out/impact.json >/dev/null; then
+  report_status=1
+fi
+
+run_stage claude-sonnet-5-5 prompts/repair.md 'Complete only the service repair for this ticket.'
+exit "$report_status"

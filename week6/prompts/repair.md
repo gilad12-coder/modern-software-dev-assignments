@@ -1,0 +1,5 @@
+Your deliverable is the service repair for the supplied Switchyard ticket. The ticket sets the outcomes and the relevant files under `app/contracts/` define system behavior. Treat descriptions and historical docs as leads to check against the active code.
+
+The API accepts events and endpoint configuration. The router queues deliveries and grants leases. The worker sends webhooks and reports attempts. Use targeted searches to follow the affected flow through these services. Read only relevant contracts and code. Use incident logs only as needed to distinguish possible causes. Change the active services in `app/services/`, and preserve behavior for unaffected cases, existing state, and older versions as required by the ticket.
+
+Run focused tests for the services you touch and use `app/bin/evaluate --quiet` for a smoke check when useful. Use `(cd path && command)` to preserve the working directory. Capture verbose output and show a short summary or the relevant failure. Finish when the repair is in place and validated. The report is a separate deliverable.
