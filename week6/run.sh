@@ -31,11 +31,16 @@ run_stage() {
     --output-format stream-json --verbose
 }
 
+run_stage claude-haiku-5-5 prompts/impact.md 'Complete only the impact report for this ticket.' &
+report_pid=$!
+run_stage claude-sonnet-5-5 prompts/repair.md 'Complete only the service repair for this ticket.' &
+repair_pid=$!
+
 report_status=0
-run_stage claude-haiku-5-5 prompts/impact.md 'Complete only the impact report for this ticket.' || report_status=$?
+wait "$report_pid" || report_status=$?
 if (( report_status == 0 )) && ! python3 -m json.tool out/impact.json >/dev/null; then
   report_status=1
 fi
 
-run_stage claude-sonnet-5-5 prompts/repair.md 'Complete only the service repair for this ticket.'
+wait "$repair_pid"
 exit "$report_status"
