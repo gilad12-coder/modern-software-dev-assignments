@@ -70,6 +70,8 @@ Sonnet's token rates are twice Terra's. At Terra's token counts from attempt 1, 
 
 **Replay follow-up.** In run `20261123-174001-1`, Sonnet replayed an API restart case before and after editing. The repeat received a new event ID before the patch and the original ID after it. All 21 repair checks and all six report figures passed in 315.2 seconds. Sonnet accounted for $0.8489. The total was $0.1484 above the full-credit cutoff. Both repair prompts reached the maximum starter score with Sonnet. The effect of the replay instructions on held-out scoring is unknown.
 
+**Additional contract checks.** I applied the service diffs from five saved practice runs to separate copies of the starter app and ran six new cases locally. Both Terra patches and both original Sonnet patches passed all six cases. The unrepaired app passed one. The Sonnet patch with the replay instructions passed four. When the old release accepted two events seconds apart under one key, the replay patch returned the second event on retry after upgrade. The API contract calls for the first event. The replay patch also accepted a new event after three days. The older design record specifies a 24-hour window, so the retry within seconds provides a clearer result. These checks compare the saved repairs on the starter and use zero model calls.
+
 **What should transfer.** Each phase reads the current ticket and the relevant contracts. The report phase checks evidence sources, grouping, units, and malformed rows. The repair phase traces the current symptom through the active services. The practice runs measured these instructions on the starter incident.
 
 ## Part III: Graded Submissions
