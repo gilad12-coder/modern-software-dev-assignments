@@ -37,8 +37,8 @@ The agent found the in-memory idempotency cache in the API code. It examined the
 | 9 | Prompt with a prescribed parsing and verification sequence | Reduce repeated evidence inspection and get an initial report sooner | 0 / 1 | 1.00 / 0.93 | $0.1934 | No |
 | 10 | Medium-effort Haiku report with the original prompt | Reduce report latency and token use while preserving accuracy | 2 / 2 | 1.00 / 1.00 | $0.1460 | Yes |
 | 11 | Short map of repair contracts, functions, and tests | Reduce Terra's broad source reads | 2 / 2 | 1.00 / 1.00 | $0.1275 | No |
-| 12 | High-effort Sonnet for repair, with the existing prompts and medium-effort Haiku for the report | Measure the cost of changing the repair model after nine incident misses in attempt 1 | 2 / 2 | 1.00 / 1.00 | $0.5406 | Attempt 2 candidate |
-| 13 | Replay checks for the requirements in the current ticket | Check that the repair passes a scenario that reproduces the reported problem | 1 / 1 | 1.00 / 1.00 | $0.8984 | Separate candidate |
+| 12 | High-effort Sonnet for repair, with the existing prompts and medium-effort Haiku for the report | Measure the cost of changing the repair model after nine incident misses in attempt 1 | 2 / 2 | 1.00 / 1.00 | $0.5406 | Selected for attempt 2 |
+| 13 | Replay checks for the requirements in the current ticket | Check that the repair passes a scenario that reproduces the reported problem | 1 / 1 | 1.00 / 1.00 | $0.8984 | No |
 
 **What fixed the failing category.** The separate report session focused on the evidence packet and checked malformed rows per file. The single-session run found the full affected set and got five of six figures right. The split run returned the same currency totals and counted three more corrupt rows. The scorer accepted all six figures in that run.
 
@@ -85,3 +85,16 @@ Sonnet's token rates are twice Terra's. At Terra's token counts from attempt 1, 
 The first attempt used medium-effort Haiku for the report and high-effort Terra for the repair. Gradescope recorded an exit code of zero and a runtime of 374.8 seconds. The repair passed 8 of 17 incident scenarios, all 51 regression scenarios, and all 8 compatibility scenarios. The gateway metered 65 model requests. Haiku accounted for about $0.043 and Terra for about $0.270.
 
 Both starter runs scored 1.00 on repair and impact. The held-out run missed nine incident scenarios while preserving regression and compatibility coverage. It scored 0.93 on impact. The published result gives aggregate scores and category counts, which leaves the specific causes of those misses uncertain. The held-out cost was $0.3126, up from the $0.1460 starter average and within the $0.75 full-credit threshold. [Gradescope result](https://www.gradescope.com/courses/1396510/assignments/9065912/submissions/451327898)
+
+### Configuration for attempt 2
+
+| Stage | Model | Effort | Prompt | Output |
+| --- | --- | --- | --- | --- |
+| Impact | `claude-haiku-5-5` | Medium | `prompts/impact.md` | `out/impact.json` |
+| Repair | `claude-sonnet-5-5` | High | `prompts/repair.md` | `app/services/` changes |
+
+`./run.sh task.md` sends the current ticket to both Claude Code sessions through the course gateway. The sessions run in parallel with five-minute prompt caching and safe mode. The wrapper waits for both and checks that the impact file parses as JSON. The impact prompt and runner match attempt 1 byte for byte. Sonnet uses the original repair prompt, which asks it to trace the current ticket through the relevant contracts and active services, then run focused tests.
+
+I selected experiment 12 because the graded Terra run missed nine incident checks. The Sonnet setup passed both starter runs below $0.75. Its saved repairs also passed the six additional local checks. The replay version returned the later event on the retry case and cost $0.8984 in practice. Terra and Sonnet tied on the independent local ticket. The held-out repair score and cost remain unknown.
+
+The verified package is `week6-attempt-2-sonnet.zip` (239 files). Its SHA-256 is `4def1c386a18b24bc1f15be22e5699488f3ee1e880741e01b71730deee09a94d`. The archive contains the exact runner and prompts used in both Sonnet practice runs. Gradescope supplies its own app, ticket, and incident evidence. Full cost credit requires a total of $0.75 or less. The gateway sets a $2.00 spending cap and the grader allows ten minutes.
