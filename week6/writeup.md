@@ -40,7 +40,7 @@ Experiment 2 saved another \$0.6590 (\$1.0590 to \$0.4000) by splitting reportin
 
 ### What Fixed the Reporting Failure
 
-Experiment 1 avoided the \$2.00 cutoff by writing the report first. It found every affected entry and got all five currency totals right, but it counted 94 corrupt rows (0.93 impact).
+In Experiment 1, Sonnet wrote the report before editing the services and stayed under the gateway's \$2.00 spending cap. It found every affected entry and got all five currency totals right, but it counted 94 corrupt rows (0.93 impact).
 
 Experiment 2 fixed that one wrong figure. In its own session, Haiku checked each file and counted all 97 corrupt rows (1.00 impact). Two later runs reinforced this result: Luna (Experiment 5) and the prescribed Haiku prompt (Experiment 9) both missed the same count. Giving Haiku an isolated session and letting it inspect each file worked better than prescribing a parsing order.
 
@@ -52,19 +52,15 @@ Two repair downgrades failed and changed my mind about small or reduced-effort r
 
 Experiment 5 tested Luna and Terra in Codex (\$0.0922 mean cost). Terra passed repair (1.00), but Luna missed the corrupt-row count on one run (1/2 passed, 0.97 mean impact). I kept Terra for repair and paired it with high-effort Haiku in Experiment 8, passing 2/2 starter runs at \$0.1440 mean cost.
 
-I then tuned prompts and effort on that hybrid pair (Experiments 9–11) and kept only one change:
-
-- **Prescribed parsing order for Haiku (Experiment 9, discarded):** Cost rose to \$0.1934, and Haiku missed the corrupt-row count (0.93 impact, 0/1 passed).
-- **Medium-effort Haiku with the original report prompt (Experiment 10, kept):** Both runs passed (\$0.1460 total mean). Lowering effort cut Haiku's average report cost from \$0.0637 to \$0.0463.
-- **Source map of repair contracts, functions, and tests for Terra (Experiment 11, discarded):** Both runs passed (\$0.1275 total mean). Terra's mean uncached input fell from 55,234 to 36,300 tokens, saving only \$0.0061 per repair. Time from Terra's first to last metered reply rose from 106 to 131 seconds, so I dropped the map.
+I kept medium-effort Haiku with the original prompt. Its mean report cost fell from \$0.0637 to \$0.0463. Terra's source map cut its mean uncached input from 55,234 to 36,300 tokens, saving \$0.0061 per repair. I dropped the map because the time from Terra's first to last metered reply rose from 106 to 131 seconds on average.
 
 ### Switching Back to Sonnet and Choosing the Final Setup
 
 I submitted the Experiment 10 setup as Attempt 1 (medium-effort Haiku report, high-effort Terra repair). It scored 0.47 on graded repair (8/17 incident checks), which changed my mind about relying on Terra.
 
-Using Attempt 1's token counts, I estimated \$0.5822 total cost with high-effort Sonnet repair. That estimate sat comfortably below the \$0.75 cap, so I traded extra spend for stronger repair. In Experiment 12, high-effort Sonnet with the original prompt passed 2/2 starter runs at \$0.5406 mean cost.
+Using Attempt 1's token counts, I estimated \$0.5822 total cost with high-effort Sonnet repair. That estimate fell below the \$0.75 full-credit cutoff, leaving room to try a more expensive repair model. In Experiment 12, high-effort Sonnet with the original prompt passed 2/2 starter runs at \$0.5406 mean cost.
 
-Next, I tested a replay prompt that asked Sonnet to replay the ticket before and after editing (Experiment 13). That run passed the starter incident (1.00 / 1.00), but cost rose to \$0.8984, above the \$0.75 cap. I also evaluated five saved patches on six extra contract checks. Both original Sonnet patches and both Terra patches passed 6/6. The replay-prompt patch passed only 4/6 and returned the second event on retry when the contract required the first. I rejected the replay prompt because it broke both the budget target and the retry contract.
+Next, I tested a replay prompt that asked Sonnet to replay the ticket before and after editing (Experiment 13). That run passed the starter incident (1.00 / 1.00), but cost rose to \$0.8984, above the \$0.75 full-credit cutoff. I also evaluated five saved patches on six extra contract checks. Both original Sonnet patches and both Terra patches passed 6/6. The replay-prompt patch passed only 4/6 and returned the second event on retry when the contract required the first. I rejected the replay prompt because it exceeded the cost target and violated the retry contract.
 
 ### Final Configuration and Starter Results
 
@@ -73,7 +69,7 @@ Next, I tested a replay prompt that asked Sonnet to replay the ticket before and
 - **Report session:** `claude-haiku-5-5` at medium effort runs `prompts/impact.md` and writes `out/impact.json`.
 - **Repair session:** `claude-sonnet-5-5` at high effort runs `prompts/repair.md`, edits `app/services/`, and runs focused tests.
 
-The script waits for both sessions and checks that `out/impact.json` parses as JSON.
+Both sessions share the gateway's \$2.00 spending cap for the run. The script waits for both sessions and checks that `out/impact.json` parses as JSON.
 
 | Final starter run | Repair | Impact | Cost |
 | --- | ---: | ---: | ---: |
@@ -103,10 +99,10 @@ The evidence supports only narrow conclusions:
 
 On a new incident, I will keep three parts of this setup:
 
-- Run reporting in its own session so repair work never exhausts the report budget.
+- Start reporting in its own session so it can run while the repair is underway.
 - Reconcile evidence across every file instead of forcing a fixed parsing order.
 - Trace repairs through the current contracts rather than fitting only a single replayed symptom.
 
 I will replace the starter's duplicate-key restart check with a test case that reproduces the new symptom.
 
-Terra still remains viable on some incidents. On a separate local ticket covering paused endpoints and worker recovery, both models passed five incident checks and three regressions. Terra cost \$0.0926 for that repair, while Sonnet cost \$0.2117. Still, when a \$0.75 budget allows it, I will start with high-effort Sonnet after its 17/17 graded result.
+Terra still remains viable on some incidents. On a separate local ticket covering paused endpoints and worker recovery, both models passed five incident checks and three regressions. Terra cost \$0.0926 for that repair, while Sonnet cost \$0.2117. Given its 17/17 graded result, I will start with high-effort Sonnet when I expect the full run to cost \$0.75 or less.
