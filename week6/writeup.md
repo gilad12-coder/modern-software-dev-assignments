@@ -72,6 +72,8 @@ Sonnet's token rates are twice Terra's. At Terra's token counts from attempt 1, 
 
 **Additional contract checks.** I applied the service diffs from five saved practice runs to separate copies of the starter app and ran six new cases locally. Both Terra patches and both original Sonnet patches passed all six cases. The unrepaired app passed one. The Sonnet patch with the replay instructions passed four. When the old release accepted two events seconds apart under one key, the replay patch returned the second event on retry after upgrade. The API contract calls for the first event. The replay patch also accepted a new event after three days. The older design record specifies a 24-hour window, so the retry within seconds provides a clearer result. These checks compare the saved repairs on the starter and use zero model calls.
 
+**Independent repair ticket.** I seeded four defects in an isolated copy to test paused endpoints and worker recovery. The clean control passed five new incident checks and three existing regression checks. The broken control failed all five incident checks. I ran each original repair stage once through the practice gateway with the same $0.70 metered budget. Terra passed all eight checks in 89.7 seconds at $0.0926. Sonnet passed all eight in 67.3 seconds at $0.2117. This comparison measured the repair phase on one new local incident.
+
 **What should transfer.** Each phase reads the current ticket and the relevant contracts. The report phase checks evidence sources, grouping, units, and malformed rows. The repair phase traces the current symptom through the active services. The practice runs measured these instructions on the starter incident.
 
 ## Part III: Graded Submissions
