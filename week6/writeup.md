@@ -36,12 +36,15 @@ The agent found the in-memory idempotency cache in the API code. It examined the
 | 8 | High-effort Haiku report and Terra repair | Pair the most consistent reporter with the cheaper full-scoring repair model | 2 / 2 | 1.00 / 1.00 | $0.1440 | Models |
 | 9 | Prompt with a prescribed parsing and verification sequence | Reduce repeated evidence inspection and get an initial report sooner | 0 / 1 | 1.00 / 0.93 | $0.1934 | No |
 | 10 | Medium-effort Haiku report with the original prompt | Reduce report latency and token use while preserving accuracy | 2 / 2 | 1.00 / 1.00 | $0.1460 | Yes |
+| 11 | Short map of repair contracts, functions, and tests | Reduce Terra's broad source reads | 2 / 2 | 1.00 / 1.00 | $0.1275 | No |
 
 **What fixed the failing category.** The separate report session focused on the evidence packet and checked malformed rows per file. The single-session run found the full affected set and got five of six figures right. The split run returned the same currency totals and counted three more corrupt rows. The scorer accepted all six figures in that run.
 
 **What saved the most money.** Splitting the original Claude session reduced the context carried by each model and moved evidence parsing to Haiku. The first four Terra repairs passed and cost $0.0771 to $0.0836 each. High-effort Sonnet cost $0.3452 to $0.8124 per repair across the three comparable runs. Paired with Terra, high-effort Haiku averaged $0.1440 per run, compared with $0.6470 for the previous parallel Claude pair. The Claude report session uses five-minute cache writes. [Claude Code prompt caching](https://code.claude.com/docs/en/prompt-caching)
 
 **What fell short.** The report-first instruction let the single session finish both artifacts. It still spent time exploring the repair before writing the report and miscounted corrupt rows. Medium-effort Sonnet and Luna each missed five repair scenarios, including cancellation of deliveries queued before deployment. Luna found every affected entry in both reporting runs and missed the corruption count in the repeat. The prescribed parsing prompt also missed the corruption count. It took 443.5 seconds and cost $0.1934.
+
+**Repair map check.** The mapped runs passed both scores. Terra averaged 36,300 uncached input tokens, down from 55,234 in the two comparable runs. Its repair cost fell from $0.0996 to $0.0935. The time from its first to last metered response rose from 106 to 131 seconds, and it still read several large sections of code. Haiku finished sooner in the two mapped runs, which brought the average full runtime down to 190 seconds. I kept the original repair prompt for the final setup.
 
 **Setup.** `run.sh` reads the supplied ticket and starts two sessions through the course gateway. Claude Code runs Haiku 5.5 at medium effort for the impact report. Codex runs GPT-6.1 Terra at high effort for the service repair. The sessions share the workspace and target different output paths. The wrapper waits for both and checks that the report is readable JSON. The practice scorer measures the correctness of both artifacts.
 
