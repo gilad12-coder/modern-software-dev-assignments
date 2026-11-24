@@ -66,7 +66,7 @@ Both runs passed all 21 repair checks and got all six report figures right. Haik
 | `20261123-172143-1` | 1.00 | 1.00 | $0.4600 | $0.5036 | 247.2 s |
 | `20261123-172143-2` | 1.00 | 1.00 | $0.5107 | $0.5776 | 325.9 s |
 
-Sonnet's token rates are twice Terra's. At Terra's token counts from attempt 1, the estimated total is $0.5822, including the same Haiku cost. That leaves $0.1678 below the full-credit cutoff. An earlier high-effort Sonnet run with high-effort Haiku cost $0.8590. Both repair models reached the maximum starter score. Sonnet's effect on the held-out repair score and cost is still unknown.
+Sonnet's token rates are twice Terra's. Before attempt 2, I estimated a total of $0.5822 using Terra's token counts from attempt 1 and the same Haiku cost. That estimate left $0.1678 below the full-credit cutoff. An earlier high-effort Sonnet run with high-effort Haiku cost $0.8590. Both repair models reached the maximum starter score.
 
 **Replay follow-up.** In run `20261123-174001-1`, Sonnet replayed an API restart case before and after editing. The repeat received a new event ID before the patch and the original ID after it. All 21 repair checks and all six report figures passed in 315.2 seconds. Sonnet accounted for $0.8489. The total was $0.1484 above the full-credit cutoff. Both repair prompts reached the maximum starter score with Sonnet. The effect of the replay instructions on held-out scoring is unknown.
 
@@ -81,6 +81,7 @@ Sonnet's token rates are twice Terra's. At Terra's token counts from attempt 1, 
 | Attempt | Repair | Impact | Passed? | Cost | Correctness points | Cost points | Total |
 | --- | ---: | ---: | --- | ---: | ---: | ---: | ---: |
 | 1 | 0.47 | 0.93 | No | $0.3126 | 22.36 / 35 | 35 / 35 | 57.36 / 70 |
+| 2 | 1.00 | 1.00 | Yes | $0.4952 | 35 / 35 | 35 / 35 | 70 / 70 |
 
 The first attempt used medium-effort Haiku for the report and high-effort Terra for the repair. Gradescope recorded an exit code of zero and a runtime of 374.8 seconds. The repair passed 8 of 17 incident scenarios, all 51 regression scenarios, and all 8 compatibility scenarios. The gateway metered 65 model requests. Haiku accounted for about $0.043 and Terra for about $0.270.
 
@@ -95,6 +96,12 @@ Both starter runs scored 1.00 on repair and impact. The held-out run missed nine
 
 `./run.sh task.md` sends the current ticket to both Claude Code sessions through the course gateway. The sessions run in parallel with five-minute prompt caching and safe mode. The wrapper waits for both and checks that the impact file parses as JSON. The impact prompt and runner match attempt 1 byte for byte. Sonnet uses the original repair prompt, which asks it to trace the current ticket through the relevant contracts and active services, then run focused tests.
 
-I selected experiment 12 because the graded Terra run missed nine incident checks. The Sonnet setup passed both starter runs below $0.75. Its saved repairs also passed the six additional local checks. The replay version returned the later event on the retry case and cost $0.8984 in practice. Terra and Sonnet tied on the independent local ticket. The held-out repair score and cost remain unknown.
+I selected experiment 12 because the graded Terra run missed nine incident checks. The Sonnet setup passed both starter runs below $0.75. Its saved repairs also passed the six additional local checks. The replay version returned the later event on the retry case and cost $0.8984 in practice. Terra and Sonnet tied on the independent local ticket.
 
 The verified package is `week6-attempt-2-sonnet.zip` (239 files). Its SHA-256 is `4def1c386a18b24bc1f15be22e5699488f3ee1e880741e01b71730deee09a94d`. The archive contains the exact runner and prompts used in both Sonnet practice runs. Gradescope supplies its own app, ticket, and incident evidence. Full cost credit requires a total of $0.75 or less. The gateway sets a $2.00 spending cap and the grader allows ten minutes.
+
+### Attempt 2 result
+
+The Sonnet repair passed all 17 incident scenarios, all 51 regression scenarios, and all 8 compatibility scenarios. The Haiku impact report scored 1.00. The runner exited with code zero after 205.0 seconds.
+
+The gateway metered 54 model requests. Haiku cost $0.0407 and Sonnet cost $0.4545. The total was $0.2548 below the full-credit cutoff. Compared with attempt 1, the score rose by 12.64 points and the cost rose by $0.1826. Gradescope lists attempt 2 as the active submission. [Gradescope result for attempt 2](https://www.gradescope.com/courses/1396510/assignments/9065912/submissions/451349618)
