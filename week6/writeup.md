@@ -38,6 +38,7 @@ The agent found the in-memory idempotency cache in the API code. It examined the
 | 10 | Medium-effort Haiku report with the original prompt | Reduce report latency and token use while preserving accuracy | 2 / 2 | 1.00 / 1.00 | $0.1460 | Yes |
 | 11 | Short map of repair contracts, functions, and tests | Reduce Terra's broad source reads | 2 / 2 | 1.00 / 1.00 | $0.1275 | No |
 | 12 | High-effort Sonnet for repair, with the existing prompts and medium-effort Haiku for the report | Measure the cost of changing the repair model after nine incident misses in attempt 1 | 2 / 2 | 1.00 / 1.00 | $0.5406 | Attempt 2 candidate |
+| 13 | Replay checks for the requirements in the current ticket | Check that the repair passes a scenario that reproduces the reported problem | 1 / 1 | 1.00 / 1.00 | $0.8984 | Separate candidate |
 
 **What fixed the failing category.** The separate report session focused on the evidence packet and checked malformed rows per file. The single-session run found the full affected set and got five of six figures right. The split run returned the same currency totals and counted three more corrupt rows. The scorer accepted all six figures in that run.
 
@@ -66,6 +67,8 @@ Both runs passed all 21 repair checks and got all six report figures right. Haik
 | `20261123-172143-2` | 1.00 | 1.00 | $0.5107 | $0.5776 | 325.9 s |
 
 Sonnet's token rates are twice Terra's. At Terra's token counts from attempt 1, the estimated total is $0.5822, including the same Haiku cost. That leaves $0.1678 below the full-credit cutoff. An earlier high-effort Sonnet run with high-effort Haiku cost $0.8590. Both repair models reached the maximum starter score. Sonnet's effect on the held-out repair score and cost is still unknown.
+
+**Replay follow-up.** In run `20261123-174001-1`, Sonnet replayed an API restart case before and after editing. The repeat received a new event ID before the patch and the original ID after it. All 21 repair checks and all six report figures passed in 315.2 seconds. Sonnet accounted for $0.8489. The total was $0.1484 above the full-credit cutoff. Both repair prompts reached the maximum starter score with Sonnet. The effect of the replay instructions on held-out scoring is unknown.
 
 **What should transfer.** Each phase reads the current ticket and the relevant contracts. The report phase checks evidence sources, grouping, units, and malformed rows. The repair phase traces the current symptom through the active services. The practice runs measured these instructions on the starter incident.
 
