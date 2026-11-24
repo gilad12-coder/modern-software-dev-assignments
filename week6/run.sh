@@ -18,7 +18,7 @@ run_report() {
   CLAUDE_CODE_SAFE_MODE=1 CLAUDE_CODE_PROMPT_CACHE_TTL=5m \
     claude -p $'Complete only the impact report for this ticket.\n\n'"$ticket" \
       --model claude-haiku-5-5 \
-      --effort high \
+      --effort medium \
       --system-prompt "$(cat prompts/impact.md)" \
       --tools 'Bash,Edit,Glob,Grep,Read,Write' \
       --strict-mcp-config \

@@ -33,24 +33,26 @@ The agent found the in-memory idempotency cache in the API code. It examined the
 | 5 | Luna report and Terra repair | Test Codex models on the same two roles | 1 / 2 | 1.00 / 0.97 | $0.0922 | Terra repair |
 | 6 | Terra report and Luna repair | See whether the smaller Codex model can also repair the services | 0 / 1 | 0.44 / 1.00 | $0.1022 | No |
 | 7 | Sonnet report and Haiku repair | Measure both Claude models in their alternative roles | 1 / 1 | 1.00 / 1.00 | $0.5293 | No |
-| 8 | Haiku report and Terra repair | Pair the most consistent reporter with the cheaper full-scoring repair model | 2 / 2 | 1.00 / 1.00 | $0.1440 | Yes |
+| 8 | High-effort Haiku report and Terra repair | Pair the most consistent reporter with the cheaper full-scoring repair model | 2 / 2 | 1.00 / 1.00 | $0.1440 | Models |
+| 9 | Prompt with a prescribed parsing and verification sequence | Reduce repeated evidence inspection and get an initial report sooner | 0 / 1 | 1.00 / 0.93 | $0.1934 | No |
+| 10 | Medium-effort Haiku report with the original prompt | Reduce report latency and token use while preserving accuracy | 2 / 2 | 1.00 / 1.00 | $0.1460 | Yes |
 
 **What fixed the failing category.** The separate report session focused on the evidence packet and checked malformed rows per file. The single-session run found the full affected set and got five of six figures right. The split run returned the same currency totals and counted three more corrupt rows. The scorer accepted all six figures in that run.
 
-**What saved the most money.** Splitting the original Claude session reduced the context carried by each model and moved evidence parsing to Haiku. Later, Terra passed all four repair runs and cost $0.0771 to $0.0836 per repair. High-effort Sonnet cost $0.3452 to $0.8124 per repair across the three comparable runs. The final Haiku and Terra pair averaged $0.1440, compared with $0.6470 for the previous parallel Claude pair. The Claude report session uses five-minute cache writes. [Claude Code prompt caching](https://code.claude.com/docs/en/prompt-caching)
+**What saved the most money.** Splitting the original Claude session reduced the context carried by each model and moved evidence parsing to Haiku. The first four Terra repairs passed and cost $0.0771 to $0.0836 each. High-effort Sonnet cost $0.3452 to $0.8124 per repair across the three comparable runs. Paired with Terra, high-effort Haiku averaged $0.1440 per run, compared with $0.6470 for the previous parallel Claude pair. The Claude report session uses five-minute cache writes. [Claude Code prompt caching](https://code.claude.com/docs/en/prompt-caching)
 
-**What fell short.** The report-first instruction let the single session finish both artifacts. It still spent time exploring the repair before writing the report and miscounted corrupt rows. Medium-effort Sonnet and Luna both passed the regression and compatibility checks for repair. Each missed five incident scenarios, including cancellation of deliveries already queued before deployment. Luna found every affected entry in both reporting runs. It miscounted corrupt rows in the repeat and got five of six figures right.
+**What fell short.** The report-first instruction let the single session finish both artifacts. It still spent time exploring the repair before writing the report and miscounted corrupt rows. Medium-effort Sonnet and Luna each missed five repair scenarios, including cancellation of deliveries queued before deployment. Luna found every affected entry in both reporting runs and missed the corruption count in the repeat. The prescribed parsing prompt also missed the corruption count. It took 443.5 seconds and cost $0.1934.
 
-**Setup.** `run.sh` reads the supplied ticket and starts two sessions through the course gateway. Claude Code runs Haiku 5.5 at high effort for the impact report. Codex runs GPT-6.1 Terra at high effort for the service repair. The sessions share the workspace and target different output paths. The wrapper waits for both and checks that the report is readable JSON. The practice scorer measures the correctness of both artifacts.
+**Setup.** `run.sh` reads the supplied ticket and starts two sessions through the course gateway. Claude Code runs Haiku 5.5 at medium effort for the impact report. Codex runs GPT-6.1 Terra at high effort for the service repair. The sessions share the workspace and target different output paths. The wrapper waits for both and checks that the report is readable JSON. The practice scorer measures the correctness of both artifacts.
 
 **Final setup on the starter incident.**
 
 | Run | Repair | Impact | Cost | Time |
 | --- | ---: | ---: | ---: | ---: |
-| `20261123-160701-1` | 1.00 | 1.00 | $0.1359 | 293.0 s |
-| `20261123-160701-2` | 1.00 | 1.00 | $0.1521 | 357.8 s |
+| `20261123-162420-2` | 1.00 | 1.00 | $0.1301 | 364.0 s |
+| `20261123-163823-1` | 1.00 | 1.00 | $0.1618 | 220.4 s |
 
-Both final runs passed all 21 repair checks and got all six report figures right. Haiku used more output and cache tokens on the repeat, and Terra's repair cost stayed near eight cents. The first parallel Claude run saved 146.1 seconds compared with the sequential Claude run. The slower Claude repeat waited 149 seconds for its first metered response and cost $0.8590.
+Both final runs passed all 21 repair checks and got all six report figures right. Haiku's time from its first to last metered reply fell from 323 to 230 seconds on average. Its report cost fell from $0.0637 to $0.0463. Full runtime averaged 292 seconds, down from 325 seconds, even though one medium-effort run waited 120 seconds for its first metered reply. Full cost averaged $0.1460, compared with $0.1440 before, because Terra's repair cost varied.
 
 **What should transfer.** Each phase reads the current ticket and the relevant contracts. The report phase checks evidence sources, grouping, units, and malformed rows. The repair phase traces the current symptom through the active services. The measured scores apply to the starter incident. The held-out run will test whether these instructions work with different evidence and a different bug.
 
