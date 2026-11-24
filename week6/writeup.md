@@ -37,6 +37,7 @@ The agent found the in-memory idempotency cache in the API code. It examined the
 | 9 | Prompt with a prescribed parsing and verification sequence | Reduce repeated evidence inspection and get an initial report sooner | 0 / 1 | 1.00 / 0.93 | $0.1934 | No |
 | 10 | Medium-effort Haiku report with the original prompt | Reduce report latency and token use while preserving accuracy | 2 / 2 | 1.00 / 1.00 | $0.1460 | Yes |
 | 11 | Short map of repair contracts, functions, and tests | Reduce Terra's broad source reads | 2 / 2 | 1.00 / 1.00 | $0.1275 | No |
+| 12 | High-effort Sonnet for repair, with the existing prompts and medium-effort Haiku for the report | Measure the cost of changing the repair model after nine incident misses in attempt 1 | 2 / 2 | 1.00 / 1.00 | $0.5406 | Attempt 2 candidate |
 
 **What fixed the failing category.** The separate report session focused on the evidence packet and checked malformed rows per file. The single-session run found the full affected set and got five of six figures right. The split run returned the same currency totals and counted three more corrupt rows. The scorer accepted all six figures in that run.
 
@@ -46,16 +47,25 @@ The agent found the in-memory idempotency cache in the API code. It examined the
 
 **Repair map check.** The mapped runs passed both scores. Terra averaged 36,300 uncached input tokens, down from 55,234 in the two comparable runs. Its repair cost fell from $0.0996 to $0.0935. The time from its first to last metered response rose from 106 to 131 seconds, and it still read several large sections of code. Haiku finished sooner in the two mapped runs, which brought the average full runtime down to 190 seconds. I kept the original repair prompt for the final setup.
 
-**Setup.** `run.sh` reads the supplied ticket and starts two sessions through the course gateway. Claude Code runs Haiku 5.5 at medium effort for the impact report. Codex runs GPT-6.1 Terra at high effort for the service repair. The sessions share the workspace and target different output paths. The wrapper waits for both and checks that the report is readable JSON. The practice scorer measures the correctness of both artifacts.
+**Setup for attempt 1.** `run.sh` reads the supplied ticket and starts two sessions through the course gateway. Claude Code runs Haiku 5.5 at medium effort for the impact report. Codex runs GPT-6.1 Terra at high effort for the service repair. The sessions share the workspace and target different output paths. The wrapper waits for both and checks that the report is readable JSON. The practice scorer measures the correctness of both artifacts.
 
-**Final setup on the starter incident.**
+**Attempt 1 setup on the starter incident.**
 
 | Run | Repair | Impact | Cost | Time |
 | --- | ---: | ---: | ---: | ---: |
 | `20261123-162420-2` | 1.00 | 1.00 | $0.1301 | 364.0 s |
 | `20261123-163823-1` | 1.00 | 1.00 | $0.1618 | 220.4 s |
 
-Both final runs passed all 21 repair checks and got all six report figures right. Haiku's time from its first to last metered reply fell from 323 to 230 seconds on average. Its report cost fell from $0.0637 to $0.0463. Full runtime averaged 292 seconds, down from 325 seconds, even though one medium-effort run waited 120 seconds for its first metered reply. Full cost averaged $0.1460, compared with $0.1440 before, because Terra's repair cost varied.
+Both runs passed all 21 repair checks and got all six report figures right. Haiku's time from its first to last metered reply fell from 323 to 230 seconds on average. Its report cost fell from $0.0637 to $0.0463. Full runtime averaged 292 seconds, down from 325 seconds, even though one medium-effort run waited 120 seconds for its first metered reply. Full cost averaged $0.1460, compared with $0.1440 before, because Terra's repair cost varied.
+
+**Sonnet repair follow-up.** I ran Sonnet 5.5 through Claude Code at high effort, with five-minute prompt caching.
+
+| Run | Repair | Impact | Sonnet cost | Total cost | Time |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `20261123-172143-1` | 1.00 | 1.00 | $0.4600 | $0.5036 | 247.2 s |
+| `20261123-172143-2` | 1.00 | 1.00 | $0.5107 | $0.5776 | 325.9 s |
+
+Sonnet's token rates are twice Terra's. At Terra's token counts from attempt 1, the estimated total is $0.5822, including the same Haiku cost. That leaves $0.1678 below the full-credit cutoff. An earlier high-effort Sonnet run with high-effort Haiku cost $0.8590. Both repair models reached the maximum starter score. Sonnet's effect on the held-out repair score and cost is still unknown.
 
 **What should transfer.** Each phase reads the current ticket and the relevant contracts. The report phase checks evidence sources, grouping, units, and malformed rows. The repair phase traces the current symptom through the active services. The practice runs measured these instructions on the starter incident.
 

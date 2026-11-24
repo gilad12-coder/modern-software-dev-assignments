@@ -5,13 +5,11 @@ task_file="${1:?usage: ./run.sh <task-file>}"
 cd -- "$(dirname -- "$0")"
 
 if [[ -z ${CS146S_GATEWAY_URL:-} ||
-      ${ANTHROPIC_BASE_URL:-} != "${CS146S_GATEWAY_URL:-}/anthropic" ||
-      ${OPENAI_BASE_URL:-} != "${CS146S_GATEWAY_URL:-}/openai/v1" ]]; then
+      ${ANTHROPIC_BASE_URL:-} != "${CS146S_GATEWAY_URL:-}/anthropic" ]]; then
   printf '%s\n' 'Start this entry point through the course practice runner or grader.' >&2
   exit 1
 fi
 
-: "${CODEX_HOME:?the course runner must configure Codex}"
 ticket=$(cat -- "$task_file")
 
 run_report() {
@@ -28,16 +26,16 @@ run_report() {
 }
 
 run_repair() {
-  local repair_prompt
-  repair_prompt=$(cat prompts/repair.md)
-  codex exec -m gpt-6.1-terra \
-    -c 'model_provider="cs146s"' \
-    -c 'model_reasoning_effort="high"' \
-    -c 'web_search="disabled"' \
-    --disable apps --disable plugins --disable remote_plugin \
-    --dangerously-bypass-approvals-and-sandbox \
-    --skip-git-repo-check --ephemeral --json \
-    $'Complete only the service repair for this ticket.\n\n'"$repair_prompt"$'\n\n'"$ticket"
+  CLAUDE_CODE_SAFE_MODE=1 CLAUDE_CODE_PROMPT_CACHE_TTL=5m \
+    claude -p $'Complete only the service repair for this ticket.\n\n'"$ticket" \
+      --model claude-sonnet-5-5 \
+      --effort high \
+      --system-prompt "$(cat prompts/repair.md)" \
+      --tools 'Bash,Edit,Glob,Grep,Read,Write' \
+      --strict-mcp-config \
+      --no-session-persistence \
+      --permission-mode bypassPermissions \
+      --output-format stream-json --verbose
 }
 
 run_report &
