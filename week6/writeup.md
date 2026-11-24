@@ -57,8 +57,14 @@ The agent found the in-memory idempotency cache in the API code. It examined the
 
 Both final runs passed all 21 repair checks and got all six report figures right. Haiku's time from its first to last metered reply fell from 323 to 230 seconds on average. Its report cost fell from $0.0637 to $0.0463. Full runtime averaged 292 seconds, down from 325 seconds, even though one medium-effort run waited 120 seconds for its first metered reply. Full cost averaged $0.1460, compared with $0.1440 before, because Terra's repair cost varied.
 
-**What should transfer.** Each phase reads the current ticket and the relevant contracts. The report phase checks evidence sources, grouping, units, and malformed rows. The repair phase traces the current symptom through the active services. The measured scores apply to the starter incident. The held-out run will test whether these instructions work with different evidence and a different bug.
+**What should transfer.** Each phase reads the current ticket and the relevant contracts. The report phase checks evidence sources, grouping, units, and malformed rows. The repair phase traces the current symptom through the active services. The practice runs measured these instructions on the starter incident.
 
 ## Part III: Graded Submissions
 
-Gradescope results are pending.
+| Attempt | Repair | Impact | Passed? | Cost | Correctness points | Cost points | Total |
+| --- | ---: | ---: | --- | ---: | ---: | ---: | ---: |
+| 1 | 0.47 | 0.93 | No | $0.3126 | 22.36 / 35 | 35 / 35 | 57.36 / 70 |
+
+The first attempt used medium-effort Haiku for the report and high-effort Terra for the repair. Gradescope recorded an exit code of zero and a runtime of 374.8 seconds. The repair passed 8 of 17 incident scenarios, all 51 regression scenarios, and all 8 compatibility scenarios. The gateway metered 65 model requests. Haiku accounted for about $0.043 and Terra for about $0.270.
+
+Both starter runs scored 1.00 on repair and impact. The held-out run missed nine incident scenarios while preserving regression and compatibility coverage. It scored 0.93 on impact. The published result gives aggregate scores and category counts, which leaves the specific causes of those misses uncertain. The held-out cost was $0.3126, up from the $0.1460 starter average and within the $0.75 full-credit threshold. [Gradescope result](https://www.gradescope.com/courses/1396510/assignments/9065912/submissions/451327898)
